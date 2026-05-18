@@ -362,6 +362,74 @@ function SubagentDetail({ step, events }) {
   )
 }
 
+function GitWorktreeDetail({ step, events }) {
+  const doneEvt = getLatestCompleted(step, events)
+  const data    = doneEvt?.data ?? {}
+  return (
+    <div>
+      {data.branch && <MetaRow label="Branch" value={data.branch} valueColor="var(--color-accent)" />}
+      {data.path   && <MetaRow label="Path"   value={data.path} />}
+      {!data.branch && !data.path && <pre style={preStyle}>{JSON.stringify(data, null, 2)}</pre>}
+    </div>
+  )
+}
+
+function TDDDetail({ step, events }) {
+  const doneEvt = getLatestCompleted(step, events)
+  const data    = doneEvt?.data ?? {}
+  const cycles  = Array.isArray(data.cycles) ? data.cycles : []
+  return (
+    <div>
+      {data.tests_written != null && <MetaRow label="Tests written" value={String(data.tests_written)} />}
+      {data.tests_passed  != null && <MetaRow label="Tests passed"  value={String(data.tests_passed)} valueColor="var(--color-accent)" />}
+      {cycles.length > 0 && (
+        <div style={{ marginTop: 10 }}>
+          <SectionLabel>Cycles</SectionLabel>
+          {cycles.map((c, i) => (
+            <div key={i} style={{ fontSize: 11, fontFamily: 'var(--font-heading)', padding: '2px 0', opacity: 0.8 }}>→ {c}</div>
+          ))}
+        </div>
+      )}
+      {data.tests_written == null && cycles.length === 0 && <pre style={preStyle}>{JSON.stringify(data, null, 2)}</pre>}
+    </div>
+  )
+}
+
+function CodeReviewDetail({ step, events }) {
+  const doneEvt = getLatestCompleted(step, events)
+  const data    = doneEvt?.data ?? {}
+  const verdictColor = data.verdict === 'approved' ? 'var(--color-accent)'
+                     : data.verdict === 'rejected'  ? 'var(--color-destructive)'
+                     : 'var(--color-warning)'
+  return (
+    <div>
+      {data.verdict          && <MetaRow label="Verdict"   value={data.verdict.toUpperCase()} valueColor={verdictColor} />}
+      {data.issues_critical  != null && <MetaRow label="Critical"  value={String(data.issues_critical)}  valueColor={data.issues_critical  > 0 ? 'var(--color-destructive)' : undefined} />}
+      {data.issues_important != null && <MetaRow label="Important" value={String(data.issues_important)} valueColor={data.issues_important > 0 ? 'var(--color-warning)'     : undefined} />}
+      {data.issues_minor     != null && <MetaRow label="Minor"     value={String(data.issues_minor)} />}
+      {data.summary && (
+        <div style={{ marginTop: 10 }}>
+          <SectionLabel>Summary</SectionLabel>
+          <p style={{ fontSize: 12, lineHeight: 1.6, opacity: 0.85 }}>{data.summary}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FinishBranchDetail({ step, events }) {
+  const doneEvt = getLatestCompleted(step, events)
+  const data    = doneEvt?.data ?? {}
+  return (
+    <div>
+      {data.action && <MetaRow label="Action" value={data.action} valueColor="var(--color-accent)" />}
+      {data.branch && <MetaRow label="Branch" value={data.branch} />}
+      {data.tests_verified != null && <MetaRow label="Tests" value={data.tests_verified ? 'Verified ✓' : 'Not verified'} valueColor={data.tests_verified ? 'var(--color-accent)' : 'var(--color-destructive)'} />}
+      {!data.action && !data.branch && <pre style={preStyle}>{JSON.stringify(data, null, 2)}</pre>}
+    </div>
+  )
+}
+
 function DefaultDetail({ step, events }) {
   const stepEvents = getStepEvents(step, events)
   const latest     = stepEvents.length > 0 ? stepEvents[stepEvents.length - 1] : null
@@ -410,14 +478,18 @@ const preStyle = {
 
 function renderDetail(step, events) {
   switch (step) {
-    case 'brainstorming':               return <BrainstormingDetail step={step} events={events} />
-    case 'writing-plans':               return <WritingPlansDetail  step={step} events={events} />
-    case 'gap-detection':               return <GapDetectionDetail  step={step} events={events} />
-    case 'candidates-generated':        return <CandidatesGeneratedDetail step={step} events={events} />
-    case 'evaluation-result':           return <EvaluationResultDetail    step={step} events={events} />
-    case 'skill-deployed':              return <SkillDeployedDetail        step={step} events={events} />
-    case 'subagent-driven-development': return <SubagentDetail             step={step} events={events} />
-    default:                            return <DefaultDetail               step={step} events={events} />
+    case 'brainstorming':                  return <BrainstormingDetail         step={step} events={events} />
+    case 'using-git-worktrees':            return <GitWorktreeDetail           step={step} events={events} />
+    case 'writing-plans':                  return <WritingPlansDetail          step={step} events={events} />
+    case 'gap-detection':                  return <GapDetectionDetail          step={step} events={events} />
+    case 'candidates-generated':           return <CandidatesGeneratedDetail   step={step} events={events} />
+    case 'evaluation-result':              return <EvaluationResultDetail      step={step} events={events} />
+    case 'skill-deployed':                 return <SkillDeployedDetail         step={step} events={events} />
+    case 'subagent-driven-development':    return <SubagentDetail              step={step} events={events} />
+    case 'test-driven-development':        return <TDDDetail                   step={step} events={events} />
+    case 'requesting-code-review':         return <CodeReviewDetail            step={step} events={events} />
+    case 'finishing-a-development-branch': return <FinishBranchDetail          step={step} events={events} />
+    default:                               return <DefaultDetail                step={step} events={events} />
   }
 }
 

@@ -1,20 +1,32 @@
 import { useEffect } from 'react'
 import {
   Lightbulb, FileText, Search, GitBranch, BarChart2, Package, Zap,
-  CheckCircle2, AlertCircle, Clock, ChevronDown
+  CheckCircle2, AlertCircle, Clock, ChevronDown,
+  GitFork, FlaskConical, MessageSquareCode, GitMerge
 } from 'lucide-react'
 
+// Full Superpowers Basic Workflow + adaptive-superpowers extensions (G1/G2)
 const PIPELINE_STEPS = [
-  { id: 'brainstorming',               label: 'Brainstorming',        icon: 'Lightbulb'  },
-  { id: 'writing-plans',               label: 'Writing Plans',        icon: 'FileText'   },
-  { id: 'gap-detection',               label: 'Gap Detection',        icon: 'Search'     },
-  { id: 'candidates-generated',        label: 'Candidate Generation', icon: 'GitBranch'  },
-  { id: 'evaluation-result',           label: 'Evaluation',           icon: 'BarChart2'  },
-  { id: 'skill-deployed',              label: 'Skill Deployed',       icon: 'Package'    },
-  { id: 'subagent-driven-development', label: 'Execution',            icon: 'Zap'        },
+  { id: 'brainstorming',               label: 'Brainstorming',        icon: 'Lightbulb',        group: 'core' },
+  { id: 'using-git-worktrees',         label: 'Git Worktree',         icon: 'GitFork',          group: 'core' },
+  { id: 'writing-plans',               label: 'Writing Plans',        icon: 'FileText',         group: 'core' },
+  { id: 'gap-detection',               label: 'Gap Detection',        icon: 'Search',           group: 'g1'   },
+  { id: 'candidates-generated',        label: 'Candidate Generation', icon: 'GitBranch',        group: 'g1'   },
+  { id: 'evaluation-result',           label: 'Evaluation',           icon: 'BarChart2',        group: 'g2'   },
+  { id: 'skill-deployed',              label: 'Skill Deployed',       icon: 'Package',          group: 'g2'   },
+  { id: 'subagent-driven-development', label: 'Execution',            icon: 'Zap',              group: 'core' },
+  { id: 'test-driven-development',     label: 'TDD',                  icon: 'FlaskConical',     group: 'core' },
+  { id: 'requesting-code-review',      label: 'Code Review',          icon: 'MessageSquareCode', group: 'core' },
+  { id: 'finishing-a-development-branch', label: 'Finish Branch',     icon: 'GitMerge',         group: 'core' },
 ]
 
-const ICONS = { Lightbulb, FileText, Search, GitBranch, BarChart2, Package, Zap }
+const GROUP_LABELS = {
+  core: null,
+  g1:   { text: 'G1 · Adaptive', color: '#3B82F6' },
+  g2:   { text: 'G2 · Adaptive', color: '#8B5CF6' },
+}
+
+const ICONS = { Lightbulb, FileText, Search, GitBranch, BarChart2, Package, Zap, GitFork, FlaskConical, MessageSquareCode, GitMerge }
 
 function getStepStatus(stepId, events) {
   if (!events || events.length === 0) return { status: 'waiting', event: null }
@@ -191,19 +203,36 @@ export default function PipelineFlow({ events, selectedStep, onStepSelect }) {
                 {IconComp && <IconComp size={18} />}
               </div>
 
-              {/* Label + timestamp */}
+              {/* Label + group badge + timestamp */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-heading, "Fira Code", monospace)',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {step.label}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div
+                    style={{
+                      fontFamily: 'var(--font-heading, "Fira Code", monospace)',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {step.label}
+                  </div>
+                  {GROUP_LABELS[step.group] && (
+                    <span style={{
+                      fontSize: 9,
+                      fontFamily: 'var(--font-heading, "Fira Code", monospace)',
+                      fontWeight: 700,
+                      color: GROUP_LABELS[step.group].color,
+                      border: `1px solid ${GROUP_LABELS[step.group].color}`,
+                      borderRadius: 3,
+                      padding: '0 4px',
+                      opacity: 0.85,
+                      flexShrink: 0,
+                    }}>
+                      {GROUP_LABELS[step.group].text}
+                    </span>
+                  )}
                 </div>
                 {timeStr && (
                   <div
