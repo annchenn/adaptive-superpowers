@@ -113,9 +113,11 @@ export default function App() {
           <ErrorBoundary name="GapDetectionPanel">
             <GapDetectionPanel events={events} />
           </ErrorBoundary>
-          <ErrorBoundary name="EvaluationDashboard">
-            <EvaluationDashboard evalLog={evalLog} />
-          </ErrorBoundary>
+          {evalLog && (
+            <ErrorBoundary name="EvaluationDashboard">
+              <EvaluationDashboard evalLog={evalLog} />
+            </ErrorBoundary>
+          )}
           <ErrorBoundary name="SkillLibrary">
             <SkillLibrary skills={skills} events={events} />
           </ErrorBoundary>
