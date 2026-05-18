@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Hook handler called by run-hook.cmd for PreToolUse/PostToolUse Skill events.
+# Reads hook data JSON from stdin, extracts the skill name, and calls log-event.sh.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Read all stdin into a temp file to allow multiple reads
+TMPFILE=$(mktemp)
+trap 'rm -f "$TMPFILE"' EXIT
+cat > "$TMPFILE"
+
+# Extract skill name from tool_input.skill using python3
+SKILL_NAME=$(python3 -c "
+import sys, json
+with open(sys.argv[1]) as f:
+    data = json.load(f)
+skill = data.get('tool_input', {}).get('skill', 'unknown')
+print(skill)
+" "$TMPFILE" 2>/dev/null || echo "unknown")
+
+# Determine status from the hook event type
+EVENT=$(python3 -c "
+import sys, json
+with open(sys.argv[1]) as f:
+    data = json.load(f)
+print(data.get('hook_event_name', 'PreToolUse'))
+" "$TMPFILE" 2>/dev/null || echo "PreToolUse")
+
+if [ "$EVENT" = "PostToolUse" ]; then
+    STATUS="completed"
+else
+    STATUS="started"
+fi
+
+bash "${SCRIPT_DIR}/log-event.sh" "$SKILL_NAME" "$STATUS"
