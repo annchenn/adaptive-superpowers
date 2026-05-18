@@ -70,10 +70,10 @@ const STATUS_STYLES = {
     iconColor: 'var(--color-foreground)',
   },
   active: {
-    border: '1px solid var(--color-accent)',
-    boxShadow: '0 0 10px rgba(34,197,94,0.3)',
+    border: '1px solid #3B82F6',
+    boxShadow: '0 0 10px rgba(59,130,246,0.35)',
     opacity: 1,
-    iconColor: 'var(--color-accent)',
+    iconColor: '#3B82F6',
   },
   completed: {
     border: '1px solid var(--color-accent)',
@@ -97,7 +97,7 @@ const STATUS_STYLES = {
 
 const STATUS_LABELS = {
   waiting:   { label: 'Waiting',   color: 'var(--color-border)'      },
-  active:    { label: 'Active',    color: 'var(--color-accent)'      },
+  active:    { label: 'Active',    color: '#3B82F6'                  },
   completed: { label: 'Done',      color: 'var(--color-accent)'      },
   error:     { label: 'Error',     color: 'var(--color-destructive)' },
   warning:   { label: 'Gaps',      color: 'var(--color-warning)'     },
