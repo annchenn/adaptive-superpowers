@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --color-background:  #0F172A;
+  --color-primary:     #1E293B;
+  --color-secondary:   #334155;
+  --color-muted:       #272F42;
+  --color-border:      #475569;
+  --color-foreground:  #F8FAFC;
+  --color-on-primary:  #FFFFFF;
+  --color-accent:      #22C55E;
+  --color-destructive: #EF4444;
+  --color-warning:     #F59E0B;
+  --color-ring:        #1E293B;
+  --font-heading: 'Fira Code', monospace;
+  --font-body:    'Fira Sans', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-background); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+
+/* Transitions */
+.transition-default { transition: all 150ms ease-out; }
+
+/* Glow effect for active steps */
+.glow-accent { text-shadow: 0 0 10px #22C55E; box-shadow: 0 0 10px rgba(34,197,94,0.3); }
