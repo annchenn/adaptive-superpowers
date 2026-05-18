@@ -61,15 +61,13 @@ export default function EvaluationDashboard({ evalLog }) {
     }
   }, [])
 
-  const chartData = evalLog
-    ? evalLog.candidates.map(c => ({
-        name: c.file.replace(/\.md$/i, ''),
-        compliance: c.scores.compliance,
-        coverage: c.scores.coverage,
-        conciseness: c.scores.conciseness,
-        total: c.total,
-      }))
-    : []
+  const chartData = evalLog?.candidates?.map(c => ({
+    name: c.file.replace(/\.md$/i, ''),
+    compliance: c.scores?.compliance ?? 0,
+    coverage: c.scores?.coverage ?? 0,
+    conciseness: c.scores?.conciseness ?? 0,
+    total: c.total ?? 0,
+  })) ?? []
 
   const winnerName = evalLog?.winner?.replace(/\.md$/i, '')
   const winnerEntry = chartData.find(d => d.name === winnerName) ?? chartData[chartData.length - 1]

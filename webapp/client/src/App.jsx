@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { io } from 'socket.io-client'
+import ErrorBoundary from './ErrorBoundary'
 import SessionTimeline from './components/SessionTimeline'
 import PipelineFlow from './components/PipelineFlow'
 import StepDetailPanel from './components/StepDetailPanel'
@@ -101,15 +102,23 @@ export default function App() {
           gap: 0
         }}>
           {selectedStep && (
-            <StepDetailPanel
-              step={selectedStep}
-              events={events}
-              onClose={() => setSelectedStep(null)}
-            />
+            <ErrorBoundary name="StepDetailPanel">
+              <StepDetailPanel
+                step={selectedStep}
+                events={events}
+                onClose={() => setSelectedStep(null)}
+              />
+            </ErrorBoundary>
           )}
-          <GapDetectionPanel events={events} />
-          <EvaluationDashboard evalLog={evalLog} />
-          <SkillLibrary skills={skills} events={events} />
+          <ErrorBoundary name="GapDetectionPanel">
+            <GapDetectionPanel events={events} />
+          </ErrorBoundary>
+          <ErrorBoundary name="EvaluationDashboard">
+            <EvaluationDashboard evalLog={evalLog} />
+          </ErrorBoundary>
+          <ErrorBoundary name="SkillLibrary">
+            <SkillLibrary skills={skills} events={events} />
+          </ErrorBoundary>
         </aside>
       </div>
     </div>

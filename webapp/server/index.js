@@ -85,16 +85,14 @@ app.get('/api/events', (req, res) => {
 
 app.get('/api/evaluation-log', (req, res) => {
   if (USE_MOCK) {
-    // Return a mock evaluation log
     return res.json({
-      timestamp: "2024-01-15T10:03:00Z",
       skill: "data-migration",
       winner: "v2.md",
-      scores: {
-        "v1": { compliance: 30, coverage: 22, conciseness: 20, total: 72 },
-        "v2": { compliance: 38, coverage: 28, conciseness: 22, total: 88 },
-        "v3": { compliance: 25, coverage: 20, conciseness: 25, total: 70 }
-      }
+      candidates: [
+        { file: "v1.md", scores: { compliance: 30, coverage: 22, conciseness: 20 }, total: 72 },
+        { file: "v2.md", scores: { compliance: 38, coverage: 28, conciseness: 22 }, total: 88 },
+        { file: "v3.md", scores: { compliance: 25, coverage: 20, conciseness: 25 }, total: 70 },
+      ]
     });
   }
   if (!fs.existsSync(EVAL_LOG_FILE)) {
