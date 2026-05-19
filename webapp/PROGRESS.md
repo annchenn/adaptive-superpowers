@@ -73,8 +73,16 @@
 
 - [x] **串接 AI Agent**
   - `POST /api/event` 端點：server 收到後寫入 events.jsonl + emit socket
-  - `MONITOR.md`：使用者把內容貼入自己的 CLAUDE.md，Claude Code 自動送事件
+  - `POST /api/event-detail` 端點：補充細節資訊到已存在的 completed 事件
+  - `agent-hooks/`：drop-in `.claude/` hook 套件，自動在 Skill 工具呼叫前後送事件（無需 CLAUDE.md 指令）
+  - 備用：CLAUDE.md 指令版（手動 curl）
   - 驗收：`curl -X POST http://localhost:3001/api/event ...` → 瀏覽器即時出現事件
+
+- [x] **重複事件去重**
+  - App.jsx 客戶端 dedup by timestamp+skill+status，解決 POST emit + chokidar emit 雙觸發問題
+
+- [x] **跳過步驟顯示**
+  - PipelineFlow 偵測「未觸發但後續步驟已完成」的節點 → 標為 `skipped`（虛線邊框、降低透明度）
 
 - [ ] **接上 G1 真實 events.jsonl**
   - 確認 G1 寫入的事件格式與 `events.jsonl` 規範一致（見 `web.md` 介面契約）

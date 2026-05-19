@@ -35,7 +35,11 @@ bash demo.sh
 
 ## 串接 AI Agent
 
-將以下內容加入你的 `CLAUDE.md`，Claude Code 就會自動送事件到 Web UI：
+**推薦方式（自動，零干擾）**：使用 `.claude/` hooks。把 [`agent-hooks/`](agent-hooks/) 底下的 `hooks.json` 和 `post-event.sh` 複製到你要 demo 的專案的 `.claude/` 資料夾，Claude Code 用 Skill 時會自動送事件。詳見 [`agent-hooks/README.md`](agent-hooks/README.md)。
+
+---
+
+**備用方式（手動）**：將以下內容加入你的 `CLAUDE.md`，Claude Code 就會自動送事件到 Web UI：
 
 ```
 ## Pipeline Monitor

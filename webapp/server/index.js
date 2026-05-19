@@ -147,6 +147,29 @@ app.post('/api/event', (req, res) => {
   }
 });
 
+app.post('/api/event-detail', (req, res) => {
+  const { skill, data } = req.body;
+  if (!skill || !data) {
+    return res.status(400).json({ ok: false, error: 'skill and data are required' });
+  }
+  try {
+    const events = readAllEvents();
+    for (let i = events.length - 1; i >= 0; i--) {
+      if (events[i].skill === skill && events[i].status === 'completed') {
+        events[i].data = { ...(events[i].data || {}), ...data };
+        const content = events.map(e => JSON.stringify(e)).join('\n') + '\n';
+        fs.writeFileSync(EVENTS_FILE, content, 'utf8');
+        io.emit('event-detail', { skill, data: events[i].data });
+        console.log(`[api/event-detail] enriched ${skill}`);
+        return res.json({ ok: true });
+      }
+    }
+    res.status(404).json({ ok: false, error: 'No matching completed event for that skill' });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.post('/api/control/clear', (req, res) => {
   try {
     if (fs.existsSync(EVENTS_FILE)) fs.writeFileSync(EVENTS_FILE, '', 'utf8');

@@ -47,3 +47,24 @@ test/
 ## 移除
 
 要關掉自動串接，把 `.claude/hooks.json` 改名或刪掉即可。
+
+---
+
+## 進階：補充細節資訊到事件
+
+Hook 只會送空 `data`，如果想讓 StepDetailPanel 看到 brainstorming 的摘要、writing-plans 的步驟列表等細節，在專案的 `CLAUDE.md` 加這段指令：
+
+```
+## Pipeline Monitor Detail
+
+After completing a skill, additionally enrich the event with details by calling:
+
+curl -s -X POST http://localhost:3001/api/event-detail -H "Content-Type: application/json" -d "{\"skill\":\"<skill-name>\",\"data\":{\"summary\":\"<one-line summary>\"}}"
+
+For writing-plans, include the step list:
+curl -s -X POST http://localhost:3001/api/event-detail -H "Content-Type: application/json" -d "{\"skill\":\"writing-plans\",\"data\":{\"plan_summary\":\"<summary>\",\"steps\":[\"step1\",\"step2\"]}}"
+
+For brainstorming, include the design summary in the data field.
+```
+
+這個指令是「補充」性質的，不影響時間軸（不會產生新事件），只是把 data 合併進已存在的 completed 事件。

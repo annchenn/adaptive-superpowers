@@ -28,11 +28,16 @@ const GROUP_LABELS = {
 
 const ICONS = { Lightbulb, FileText, Search, GitBranch, BarChart2, Package, Zap, GitFork, FlaskConical, MessageSquareCode, GitMerge }
 
-function getStepStatus(stepId, events) {
+function getStepStatus(stepId, stepIndex, events) {
   if (!events || events.length === 0) return { status: 'waiting', event: null }
 
   const stepEvents = events.filter(e => e.skill === stepId)
-  if (stepEvents.length === 0) return { status: 'waiting', event: null }
+  if (stepEvents.length === 0) {
+    // Check if any later step has been completed/started → this one was skipped
+    const laterStepIds = PIPELINE_STEPS.slice(stepIndex + 1).map(s => s.id)
+    const laterTouched = events.some(e => laterStepIds.includes(e.skill))
+    return { status: laterTouched ? 'skipped' : 'waiting', event: null }
+  }
 
   const latest = stepEvents[stepEvents.length - 1]
 
@@ -87,6 +92,12 @@ const STATUS_STYLES = {
     opacity: 1,
     iconColor: 'var(--color-destructive)',
   },
+  skipped: {
+    border: '1px dashed var(--color-border)',
+    boxShadow: 'none',
+    opacity: 0.45,
+    iconColor: 'var(--color-foreground)',
+  },
   warning: {
     border: '1px solid var(--color-warning)',
     boxShadow: 'none',
@@ -97,6 +108,7 @@ const STATUS_STYLES = {
 
 const STATUS_LABELS = {
   waiting:   { label: 'Waiting',   color: 'var(--color-border)'      },
+  skipped:   { label: 'Skipped',   color: 'var(--color-border)'      },
   active:    { label: 'Active',    color: '#3B82F6'                  },
   completed: { label: 'Done',      color: 'var(--color-accent)'      },
   error:     { label: 'Error',     color: 'var(--color-destructive)' },
@@ -139,7 +151,7 @@ export default function PipelineFlow({ events, selectedStep, onStepSelect }) {
       }}
     >
       {PIPELINE_STEPS.map((step, idx) => {
-        const { status, event } = getStepStatus(step.id, events)
+        const { status, event } = getStepStatus(step.id, idx, events)
         const styles = STATUS_STYLES[status]
         const statusMeta = STATUS_LABELS[status]
         const IconComp = ICONS[step.icon]

@@ -27,6 +27,18 @@ export default function App() {
       if (prev.some(e => `${e.timestamp}|${e.skill}|${e.status}` === key)) return prev
       return [...prev, evt]
     }))
+    socket.on('event-detail', ({ skill, data }) => setEvents(prev => {
+      // Enrich latest completed event for this skill
+      let updated = false
+      const next = [...prev]
+      for (let i = next.length - 1; i >= 0; i--) {
+        if (!updated && next[i].skill === skill && next[i].status === 'completed') {
+          next[i] = { ...next[i], data: { ...(next[i].data || {}), ...data } }
+          updated = true
+        }
+      }
+      return next
+    }))
 
     fetch('/api/evaluation-log').then(r => r.json()).then(setEvalLog).catch(() => {})
     fetch('/api/skills').then(r => r.json()).then(setSkills).catch(() => {})
