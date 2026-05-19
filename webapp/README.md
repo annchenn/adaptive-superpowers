@@ -91,12 +91,45 @@ bash demo.sh
 
 ---
 
+## 串接 AI Agent（Claude Code）
+
+讓你的 Claude Code session 自動把執行進度送到 Web UI，只需把以下內容貼入你的專案 `CLAUDE.md`：
+
+```markdown
+## Pipeline Monitor
+
+每次開始或完成一個主要步驟時，用 Bash 送事件給 Web UI（需先啟動 http://localhost:3001）：
+
+步驟開始時：
+curl -s -X POST http://localhost:3001/api/event \
+  -H "Content-Type: application/json" \
+  -d "{\"skill\":\"<步驟名稱>\",\"status\":\"started\",\"data\":{}}"
+
+步驟完成時：
+curl -s -X POST http://localhost:3001/api/event \
+  -H "Content-Type: application/json" \
+  -d "{\"skill\":\"<步驟名稱>\",\"status\":\"completed\",\"data\":{\"summary\":\"<簡短描述>\"}}"
+
+步驟名稱對照：brainstorming、using-git-worktrees、writing-plans、gap-detection、
+candidates-generated、evaluation-result、skill-deployed、subagent-driven-development、
+test-driven-development、requesting-code-review、finishing-a-development-branch
+```
+
+**測試是否連通：**
+```bash
+curl -s -X POST http://localhost:3001/api/event \
+  -H "Content-Type: application/json" \
+  -d '{"skill":"brainstorming","status":"started","data":{}}'
+```
+瀏覽器 Session Timeline 出現事件即代表接通。
+
+---
+
 ## 接上真實 G1/G2 資料
 
 ### events.jsonl（G1、G2 均需 append）
 
 ```bash
-# 格式（每行一個 JSON）
 bash hooks/log-event.sh <skill-name> <started|completed> '<json-data>'
 
 # 範例
@@ -115,8 +148,6 @@ bash hooks/log-event.sh gap-detection completed '{"gaps":[{"name":"my-skill","de
   ]
 }
 ```
-
-寫入後前端會在下次 socket 連線時自動讀取（或重新整理頁面）。
 
 ---
 
