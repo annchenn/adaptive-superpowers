@@ -86,4 +86,6 @@ bash hooks/log-event.sh <skill-name> <started|completed> '<json-data>'
 
 ---
 
+詳細架構設計（技術選型、元件職責、API 端點、介面契約）見 [`WEB.md`](WEB.md)。
+
 詳細進度與待辦事項見 [`PROGRESS.md`](PROGRESS.md)。
