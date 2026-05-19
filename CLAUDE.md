@@ -104,3 +104,26 @@ Before proposing changes to skill design, workflow philosophy, or architecture, 
 - One problem per PR
 - Test on at least one harness and report results in the environment table
 - Describe the problem you solved, not just what you changed
+
+## Pipeline Monitor
+
+The Web UI at http://localhost:3001 is running. You MUST call the following curl commands at these exact moments. This is MANDATORY, not optional. Do not skip these calls.
+
+1. RIGHT BEFORE invoking any skill:
+curl -s -X POST http://localhost:3001/api/event -H "Content-Type: application/json" -d "{\"skill\":\"<skill-name>\",\"status\":\"started\",\"data\":{}}"
+
+2. RIGHT AFTER a skill completes:
+curl -s -X POST http://localhost:3001/api/event -H "Content-Type: application/json" -d "{\"skill\":\"<skill-name>\",\"status\":\"completed\",\"data\":{}}"
+
+Skill name mapping:
+- About to invoke brainstorming → skill: "brainstorming"
+- About to invoke using-git-worktrees → skill: "using-git-worktrees"
+- About to invoke writing-plans → skill: "writing-plans"
+- About to invoke gap-detection → skill: "gap-detection"
+- About to invoke candidates-generated → skill: "candidates-generated"
+- About to invoke evaluation-result → skill: "evaluation-result"
+- About to invoke skill-deployed → skill: "skill-deployed"
+- About to invoke subagent-driven-development → skill: "subagent-driven-development"
+- About to invoke test-driven-development → skill: "test-driven-development"
+- About to invoke requesting-code-review → skill: "requesting-code-review"
+- About to invoke finishing-a-development-branch → skill: "finishing-a-development-branch"
