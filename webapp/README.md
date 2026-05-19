@@ -33,9 +33,9 @@ bash demo.sh
 
 ---
 
-## Connect AI Agent
+## 串接 AI Agent
 
-將以下內容加入你的 CLAUDE.md，Claude Code 就會自動送事件到 Web UI：
+將以下內容加入你的 `CLAUDE.md`，Claude Code 就會自動送事件到 Web UI：
 
 ```
 ## Pipeline Monitor
@@ -52,13 +52,13 @@ Available step names:
 brainstorming | using-git-worktrees | writing-plans | gap-detection | candidates-generated | evaluation-result | skill-deployed | subagent-driven-development | test-driven-development | requesting-code-review | finishing-a-development-branch
 ```
 
-**Test the connection:**
+**測試連通：**
 ```bash
 curl -s -X POST http://localhost:3001/api/event \
   -H "Content-Type: application/json" \
   -d '{"skill":"brainstorming","status":"started","data":{}}'
 ```
-If an event appears in the browser Session Timeline, the connection is working.
+瀏覽器 Session Timeline 出現事件 → 接通成功。
 
 ---
 
