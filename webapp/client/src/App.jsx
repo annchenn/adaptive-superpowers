@@ -22,7 +22,11 @@ export default function App() {
     socket.on('connect', () => setConnected(true))
     socket.on('disconnect', () => setConnected(false))
     socket.on('init-events', (evts) => setEvents(evts))
-    socket.on('new-event', (evt) => setEvents(prev => [...prev, evt]))
+    socket.on('new-event', (evt) => setEvents(prev => {
+      const key = `${evt.timestamp}|${evt.skill}|${evt.status}`
+      if (prev.some(e => `${e.timestamp}|${e.skill}|${e.status}` === key)) return prev
+      return [...prev, evt]
+    }))
 
     fetch('/api/evaluation-log').then(r => r.json()).then(setEvalLog).catch(() => {})
     fetch('/api/skills').then(r => r.json()).then(setSkills).catch(() => {})
