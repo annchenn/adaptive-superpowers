@@ -14,11 +14,20 @@ cd client && npm install
 
 **2. 開啟三個終端**
 
-| 終端 | 指令 | 說明 |
-|------|------|------|
-| 1 | `cd webapp && npm run dev:server` | 後端 port 3001 |
-| 2 | `cd webapp\client && npm run dev` | 前端 port 5173 |
-| 3 | `bash demo.sh` | 模擬完整 pipeline |
+終端 1 — 後端 port 3001
+```powershell
+cd webapp && npm run dev:server
+```
+
+終端 2 — 前端 port 5173
+```powershell
+cd webapp\client && npm run dev
+```
+
+終端 3 — 模擬完整 pipeline
+```bash
+bash demo.sh
+```
 
 **3. 開瀏覽器**：http://localhost:5173
 
