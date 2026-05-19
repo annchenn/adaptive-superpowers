@@ -87,7 +87,7 @@ export default function App() {
             <PipelineFlow events={events} selectedStep={selectedStep} onStepSelect={handleStepSelect} />
           </div>
           <div style={{ borderTop: '1px solid var(--color-border)', padding: '12px 16px', flexShrink: 0 }}>
-            <ControlPanel />
+            <ControlPanel onClear={() => setEvents([])} />
           </div>
         </main>
 

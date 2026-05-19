@@ -147,6 +147,17 @@ app.post('/api/event', (req, res) => {
   }
 });
 
+app.post('/api/control/clear', (req, res) => {
+  try {
+    if (fs.existsSync(EVENTS_FILE)) fs.writeFileSync(EVENTS_FILE, '', 'utf8');
+    io.emit('init-events', []);
+    console.log('[api/control/clear] events cleared');
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.post('/api/control/gap-detection', (req, res) => {
   res.json({ ok: true, message: 'Gap detection triggered' });
 });

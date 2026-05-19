@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Zap, BarChart2, Rocket, Loader2 } from 'lucide-react'
+import { Zap, BarChart2, Rocket, Loader2, Trash2 } from 'lucide-react'
 
 const SPIN_CSS = `
 @keyframes cp-spin {
@@ -62,12 +62,13 @@ function Toast({ message, onDone }) {
   )
 }
 
-export default function ControlPanel() {
+export default function ControlPanel({ onClear }) {
   const [loadingId, setLoadingId] = useState(null)
   const [toast, setToast] = useState(null)   // { message }
   const [errorId, setErrorId] = useState(null)
   const [errorMsg, setErrorMsg] = useState('')
   const [hovered, setHovered] = useState(null)
+  const [clearHovered, setClearHovered] = useState(false)
 
   useEffect(() => {
     const id = 'cp-spin-style'
@@ -80,6 +81,20 @@ export default function ControlPanel() {
   }, [])
 
   const dismissToast = useCallback(() => setToast(null), [])
+
+  async function handleClear() {
+    if (loadingId) return
+    setLoadingId('clear')
+    try {
+      await fetch('/api/control/clear', { method: 'POST' })
+      setToast({ message: '✓ Events cleared' })
+      onClear?.()
+    } catch {
+      setToast({ message: '✗ Clear failed' })
+    } finally {
+      setLoadingId(null)
+    }
+  }
 
   async function handleClick(btn) {
     if (loadingId) return
@@ -112,6 +127,38 @@ export default function ControlPanel() {
         gap: 8,
         flexWrap: 'wrap',
       }}>
+        {/* Clear button */}
+        <button
+          disabled={!!loadingId}
+          onClick={handleClear}
+          onMouseEnter={() => setClearHovered(true)}
+          onMouseLeave={() => setClearHovered(false)}
+          onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)' }}
+          onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)' }}
+          title="Clear all events"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 12px',
+            borderRadius: 6,
+            border: `1px solid ${clearHovered ? 'transparent' : 'var(--color-border)'}`,
+            background: clearHovered ? 'var(--color-destructive)' : 'var(--color-secondary)',
+            color: clearHovered ? '#fff' : 'var(--color-foreground)',
+            fontSize: 12,
+            fontFamily: 'var(--font-body)',
+            fontWeight: 500,
+            cursor: loadingId ? 'not-allowed' : 'pointer',
+            opacity: loadingId && loadingId !== 'clear' ? 0.5 : 1,
+            transition: 'background 150ms, color 150ms, border-color 150ms, transform 150ms',
+            transform: 'scale(1)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {loadingId === 'clear' ? <span className="cp-spin"><Loader2 size={13} /></span> : <Trash2 size={13} />}
+          Clear
+        </button>
+
         {BUTTONS.map(btn => {
           const isLoading = loadingId === btn.id
           const isDisabled = !!loadingId
