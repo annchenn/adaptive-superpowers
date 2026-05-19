@@ -33,35 +33,32 @@ bash demo.sh
 
 ---
 
-## 串接 AI Agent
+## Connect AI Agent
 
-將以下內容加入你的 `CLAUDE.md`，Claude Code 就會自動送事件到 Web UI：
+將以下內容加入你的 CLAUDE.md，Claude Code 就會自動送事件到 Web UI：
 
-每次開始或完成主要步驟時，執行：
+```
+## Pipeline Monitor
 
-步驟開始：
-```bash
-curl -s -X POST http://localhost:3001/api/event \
-  -H "Content-Type: application/json" \
-  -d "{\"skill\":\"<步驟名>\",\"status\":\"started\",\"data\":{}}"
+Before starting and after completing each major step, run the appropriate curl command:
+
+Start of step:
+curl -s -X POST http://localhost:3001/api/event -H "Content-Type: application/json" -d "{\"skill\":\"<step-name>\",\"status\":\"started\",\"data\":{}}"
+
+End of step:
+curl -s -X POST http://localhost:3001/api/event -H "Content-Type: application/json" -d "{\"skill\":\"<step-name>\",\"status\":\"completed\",\"data\":{}}"
+
+Available step names:
+brainstorming | using-git-worktrees | writing-plans | gap-detection | candidates-generated | evaluation-result | skill-deployed | subagent-driven-development | test-driven-development | requesting-code-review | finishing-a-development-branch
 ```
 
-步驟完成：
-```bash
-curl -s -X POST http://localhost:3001/api/event \
-  -H "Content-Type: application/json" \
-  -d "{\"skill\":\"<步驟名>\",\"status\":\"completed\",\"data\":{}}"
-```
-
-步驟名稱：`brainstorming` | `using-git-worktrees` | `writing-plans` | `gap-detection` | `candidates-generated` | `evaluation-result` | `skill-deployed` | `subagent-driven-development` | `test-driven-development` | `requesting-code-review` | `finishing-a-development-branch`
-
-**測試連通：**
+**Test the connection:**
 ```bash
 curl -s -X POST http://localhost:3001/api/event \
   -H "Content-Type: application/json" \
   -d '{"skill":"brainstorming","status":"started","data":{}}'
 ```
-瀏覽器 Session Timeline 出現事件 → 接通成功。
+If an event appears in the browser Session Timeline, the connection is working.
 
 ---
 
