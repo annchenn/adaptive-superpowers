@@ -71,10 +71,10 @@
 
 ### 高優先（整合前必須完成）
 
-- [ ] **串接 AI Agent**
-  - 讓 AI agent（Claude Code / 任何 LLM）在每個步驟呼叫 `log-event.sh`，Web UI 即時顯示流程
-  - 方式：agent 在 prompt 中加入 `bash hooks/log-event.sh <skill> started/completed '<data>'`
-  - 驗收：實際跑一個 agent 任務，能在瀏覽器看到 11 個步驟依序點亮
+- [x] **串接 AI Agent**
+  - `POST /api/event` 端點：server 收到後寫入 events.jsonl + emit socket
+  - `MONITOR.md`：使用者把內容貼入自己的 CLAUDE.md，Claude Code 自動送事件
+  - 驗收：`curl -X POST http://localhost:3001/api/event ...` → 瀏覽器即時出現事件
 
 - [ ] **接上 G1 真實 events.jsonl**
   - 確認 G1 寫入的事件格式與 `events.jsonl` 規範一致（見 `web.md` 介面契約）

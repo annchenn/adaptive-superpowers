@@ -128,6 +128,25 @@ app.get('/api/step-detail/:skill', (req, res) => {
   res.json(filtered);
 });
 
+app.post('/api/event', (req, res) => {
+  const { skill, status, data } = req.body;
+  if (!skill || !status) {
+    return res.status(400).json({ ok: false, error: 'skill and status are required' });
+  }
+  const timestamp = new Date().toISOString();
+  const event = { timestamp, skill, status, data: data ?? {} };
+  const line = JSON.stringify(event) + '\n';
+  try {
+    fs.appendFileSync(EVENTS_FILE, line, 'utf8');
+    io.emit('new-event', event);
+    console.log(`[api/event] ${skill} → ${status}`);
+    res.json({ ok: true, event });
+  } catch (err) {
+    console.error('[api/event] write error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.post('/api/control/gap-detection', (req, res) => {
   res.json({ ok: true, message: 'Gap detection triggered' });
 });
