@@ -28,16 +28,23 @@ cd client && npm install
 
 將以下內容加入你的 `CLAUDE.md`，Claude Code 就會自動送事件到 Web UI：
 
-```
 每次開始或完成主要步驟時，執行：
 
-開始：curl -s -X POST http://localhost:3001/api/event -H "Content-Type: application/json" -d "{\"skill\":\"<步驟名>\",\"status\":\"started\",\"data\":{}}"
-完成：curl -s -X POST http://localhost:3001/api/event -H "Content-Type: application/json" -d "{\"skill\":\"<步驟名>\",\"status\":\"completed\",\"data\":{}}"
-
-步驟名稱：brainstorming | using-git-worktrees | writing-plans | gap-detection |
-candidates-generated | evaluation-result | skill-deployed | subagent-driven-development |
-test-driven-development | requesting-code-review | finishing-a-development-branch
+步驟開始：
+```bash
+curl -s -X POST http://localhost:3001/api/event \
+  -H "Content-Type: application/json" \
+  -d "{\"skill\":\"<步驟名>\",\"status\":\"started\",\"data\":{}}"
 ```
+
+步驟完成：
+```bash
+curl -s -X POST http://localhost:3001/api/event \
+  -H "Content-Type: application/json" \
+  -d "{\"skill\":\"<步驟名>\",\"status\":\"completed\",\"data\":{}}"
+```
+
+步驟名稱：`brainstorming` | `using-git-worktrees` | `writing-plans` | `gap-detection` | `candidates-generated` | `evaluation-result` | `skill-deployed` | `subagent-driven-development` | `test-driven-development` | `requesting-code-review` | `finishing-a-development-branch`
 
 **測試連通：**
 ```bash
