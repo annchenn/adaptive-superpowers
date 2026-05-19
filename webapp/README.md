@@ -61,7 +61,7 @@ npm run dev
 
 ```bash
 # 切換到 adaptive-superpowers 根目錄
-cd /c/HW/GenAI/Group/hw2/adaptive-superpowers
+cd /adaptive-superpowers
 
 bash demo.sh
 ```
