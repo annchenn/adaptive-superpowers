@@ -8,8 +8,12 @@
 
 **1. 安裝依賴**（只需一次）
 ```powershell
-cd adaptive-superpowers\webapp && npm install
-cd client && npm install
+cd adaptive-superpowers\webapp
+npm install
+
+cd client
+npm install
+npm install canvas-confetti
 ```
 
 **2. 開啟三個終端**
