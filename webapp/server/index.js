@@ -34,6 +34,10 @@ const SKILLS_DIR = path.join(__dirname, '..', '..', 'skills');
 
 const USE_MOCK = process.env.MOCK === 'true';
 
+// Tracks the most recently started skill, so sub-events (file writes,
+// questions, todo updates) can be attributed to their parent skill.
+let currentSkill = null;
+
 /**
  * Read all events from events.jsonl.
  * Returns parsed array (or mock data if MOCK=true).
@@ -138,11 +142,34 @@ app.post('/api/event', (req, res) => {
   const line = JSON.stringify(event) + '\n';
   try {
     fs.appendFileSync(EVENTS_FILE, line, 'utf8');
+    // Track the active skill so later sub-events attach to it.
+    if (status === 'started') currentSkill = skill;
     io.emit('new-event', event);
     console.log(`[api/event] ${skill} → ${status}`);
     res.json({ ok: true, event });
   } catch (err) {
     console.error('[api/event] write error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/sub-event', (req, res) => {
+  const { subType, data } = req.body;
+  if (!subType) {
+    return res.status(400).json({ ok: false, error: 'subType is required' });
+  }
+  // Ignore sub-events that occur before any skill has started.
+  if (!currentSkill) {
+    return res.json({ ok: true, skipped: 'no active skill' });
+  }
+  const timestamp = new Date().toISOString();
+  const event = { timestamp, skill: currentSkill, status: 'sub-event', subType, data: data ?? {} };
+  try {
+    fs.appendFileSync(EVENTS_FILE, JSON.stringify(event) + '\n', 'utf8');
+    io.emit('new-event', event);
+    console.log(`[api/sub-event] ${currentSkill} ← ${subType}`);
+    res.json({ ok: true, event });
+  } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
@@ -237,7 +264,7 @@ if (!USE_MOCK) {
 
 // --- Start server ---
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`[server] listening on http://localhost:${PORT}`);
   console.log(`[server] MOCK mode: ${USE_MOCK}`);

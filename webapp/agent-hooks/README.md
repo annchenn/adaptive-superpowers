@@ -1,6 +1,7 @@
 # Agent Hooks — 自動串接 Pipeline Monitor
 
-讓 Claude Code 在每次 invoke Skill 時自動送事件到 Web UI，**不用改 CLAUDE.md，不用使用者確認**。
+讓 Claude Code 在每次操作時自動送事件到 Web UI，**不用改 CLAUDE.md，不用使用者確認**。
+除了 skill 開始/結束，還會自動捕捉**過程資訊**：寫了哪些檔案、做了哪些決策、checklist 進度。
 
 ---
 
@@ -11,36 +12,52 @@
 ```powershell
 # 假設你的專案在 c:\HW\GenAI\Group\hw2\test
 mkdir c:\HW\GenAI\Group\hw2\test\.claude
-copy webapp\agent-hooks\post-event.sh c:\HW\GenAI\Group\hw2\test\.claude\
+copy webapp\agent-hooks\post-event.js c:\HW\GenAI\Group\hw2\test\.claude\
 copy webapp\agent-hooks\hooks.json    c:\HW\GenAI\Group\hw2\test\.claude\
 ```
 
 完成後該專案結構：
 ```
 test/
-├── CLAUDE.md          ← 可以拿掉 Pipeline Monitor 那段了
+├── CLAUDE.md          ← 不需要 Pipeline Monitor 指令了
 └── .claude/
     ├── hooks.json
-    └── post-event.sh
+    └── post-event.js
 ```
+
+> 需要 Node.js（與 webapp 同樣的需求）。Hook 用 Node 寫，跨平台。
 
 ---
 
 ## 運作原理
 
 1. Claude Code 啟動 session 時自動讀 `.claude/hooks.json`
-2. 每次 Claude 呼叫 Skill 工具：
-   - 呼叫前 → PreToolUse hook 觸發 → `post-event.sh` 送 `started`
-   - 完成後 → PostToolUse hook 觸發 → `post-event.sh` 送 `completed`
-3. `post-event.sh` 從 stdin 讀取 hook payload，解析 skill 名稱，POST 給 Web UI
+2. 每次 Claude 呼叫工具，hook 觸發 `post-event.js`，從 stdin 讀 payload 後 POST 給 Web UI：
+
+| 工具 | 捕捉內容 | 送出 |
+|------|---------|------|
+| `Skill`（PreToolUse） | skill 開始 | `started` |
+| `Skill`（PostToolUse） | skill 完成 | `completed` |
+| `Write` / `Edit` / `NotebookEdit` | 寫入的檔案路徑 | sub-event `file` |
+| `AskUserQuestion` | 問題與答案 | sub-event `question` |
+| `TodoWrite` | checklist 進度（done/total + 目前項目） | sub-event `todo` |
+
+3. sub-event 由 server 自動掛到「目前進行中的 skill」底下（最後一個 started 未完成的 skill）
 
 **完全自動，不需要 Claude 記得任何事。**
 
 ---
 
+## 呈現方式
+
+- **Session Timeline**（左欄）：sub-event 縮排顯示在父 skill 下方，可用 header 的「Details」按鈕開關
+- **Step Detail Panel**（點擊步驟）：完整列出該 skill 的所有過程（決策、檔案、進度）
+
+---
+
 ## 驗證
 
-啟動 Web UI 後，開 Claude Code 在該專案下，給任意任務（例如「幫我做一個 todo list」），瀏覽器 Session Timeline 應該立刻出現 `brainstorming started`。
+啟動 Web UI 後，開 Claude Code 在該專案下，給任意任務（例如「幫我做一個 todo list」）。瀏覽器 Session Timeline 應該出現 `brainstorming started`，接著陸續出現決策、檔案等 sub-event。
 
 ---
 
@@ -50,21 +67,14 @@ test/
 
 ---
 
-## 進階：補充細節資訊到事件
+## 進階：補充階段專屬資料
 
-Hook 只會送空 `data`，如果想讓 StepDetailPanel 看到 brainstorming 的摘要、writing-plans 的步驟列表等細節，在專案的 `CLAUDE.md` 加這段指令：
+Hook 自動抓的是通用過程（檔案、決策、進度）。若想加上階段專屬的結構化資料（如 gap 清單、評分、diff），用 `event-detail` 端點補充到已存在的 completed 事件：
 
-```
-## Pipeline Monitor Detail
-
-After completing a skill, additionally enrich the event with details by calling:
-
-curl -s -X POST http://localhost:3001/api/event-detail -H "Content-Type: application/json" -d "{\"skill\":\"<skill-name>\",\"data\":{\"summary\":\"<one-line summary>\"}}"
-
-For writing-plans, include the step list:
-curl -s -X POST http://localhost:3001/api/event-detail -H "Content-Type: application/json" -d "{\"skill\":\"writing-plans\",\"data\":{\"plan_summary\":\"<summary>\",\"steps\":[\"step1\",\"step2\"]}}"
-
-For brainstorming, include the design summary in the data field.
+```bash
+curl -s -X POST http://localhost:3001/api/event-detail \
+  -H "Content-Type: application/json" \
+  -d "{\"skill\":\"<skill-name>\",\"data\":{\"summary\":\"<摘要>\"}}"
 ```
 
-這個指令是「補充」性質的，不影響時間軸（不會產生新事件），只是把 data 合併進已存在的 completed 事件。
+這是「補充」性質，不產生新事件，只把 data 合併進該 skill 的 completed 事件。

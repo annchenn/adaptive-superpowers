@@ -13,6 +13,11 @@ function getStepEvents(step, events) {
   return events.filter(e => e.skill === step)
 }
 
+function getSubEvents(step, events) {
+  if (!events || !step) return []
+  return events.filter(e => e.skill === step && e.status === 'sub-event')
+}
+
 function getLatestCompleted(step, events) {
   const stepEvents = getStepEvents(step, events)
   const completed = stepEvents.filter(e => e.status === 'completed')
@@ -84,6 +89,52 @@ function MetaRow({ label, value, valueColor }) {
       }}>
         {value ?? '—'}
       </span>
+    </div>
+  )
+}
+
+const SUB_META = {
+  file:     { glyph: '✎', label: 'File',     color: 'var(--color-accent)' },
+  question: { glyph: '?', label: 'Decision', color: '#3B82F6' },
+  todo:     { glyph: '☑', label: 'Progress', color: '#A78BFA' },
+}
+
+function subEventText(evt) {
+  const d = evt.data || {}
+  if (evt.subType === 'file')     return d.path || 'file'
+  if (evt.subType === 'question') return d.answer ? `${d.question} → ${d.answer}` : (d.question || 'question')
+  if (evt.subType === 'todo')     return d.current ? `${d.done}/${d.total} · ${d.current}` : `${d.done}/${d.total}`
+  return evt.subType || 'event'
+}
+
+function SubEventTimeline({ step, events }) {
+  const subs = getSubEvents(step, events)
+  if (subs.length === 0) return null
+
+  return (
+    <div style={{ marginTop: 14 }}>
+      <SectionLabel>過程 ({subs.length})</SectionLabel>
+      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {subs.map((evt, i) => {
+          const meta = SUB_META[evt.subType] ?? { glyph: '·', color: 'var(--color-border)' }
+          return (
+            <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 11, lineHeight: 1.5 }}>
+              <span style={{ flexShrink: 0, width: 14, textAlign: 'center', color: meta.color, marginTop: 1 }}>
+                {meta.glyph}
+              </span>
+              <span style={{
+                flex: 1,
+                minWidth: 0,
+                opacity: 0.85,
+                fontFamily: evt.subType === 'file' ? 'var(--font-heading)' : 'var(--font-body)',
+                wordBreak: 'break-word',
+              }}>
+                {subEventText(evt)}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
     </div>
   )
 }
@@ -496,7 +547,7 @@ function renderDetail(step, events) {
 /* ── Status helpers ──────────────────────────────────────────── */
 
 function getStatus(step, events) {
-  const stepEvents = getStepEvents(step, events)
+  const stepEvents = getStepEvents(step, events).filter(e => e.status !== 'sub-event')
   if (stepEvents.length === 0) return null
   const latest = stepEvents[stepEvents.length - 1]
   return latest.status
@@ -597,6 +648,7 @@ export default function StepDetailPanel({ step, events, onClose }) {
       {/* Body */}
       <div style={{ padding: '12px 14px', fontSize: 12 }}>
         {renderDetail(step, events)}
+        <SubEventTimeline step={step} events={events} />
       </div>
     </div>
   )

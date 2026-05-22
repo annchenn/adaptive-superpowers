@@ -31,11 +31,11 @@ const ICONS = { Lightbulb, FileText, Search, GitBranch, BarChart2, Package, Zap,
 function getStepStatus(stepId, stepIndex, events) {
   if (!events || events.length === 0) return { status: 'waiting', event: null }
 
-  const stepEvents = events.filter(e => e.skill === stepId)
+  const stepEvents = events.filter(e => e.skill === stepId && e.status !== 'sub-event')
   if (stepEvents.length === 0) {
     // Check if any later step has been completed/started → this one was skipped
     const laterStepIds = PIPELINE_STEPS.slice(stepIndex + 1).map(s => s.id)
-    const laterTouched = events.some(e => laterStepIds.includes(e.skill))
+    const laterTouched = events.some(e => laterStepIds.includes(e.skill) && e.status !== 'sub-event')
     return { status: laterTouched ? 'skipped' : 'waiting', event: null }
   }
 

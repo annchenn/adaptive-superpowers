@@ -42,7 +42,7 @@ cd webapp && npm run demo
 
 ## 串接 AI Agent
 
-**推薦方式（自動，零干擾）**：使用 `.claude/` hooks。把 [`agent-hooks/`](agent-hooks/) 底下的 `hooks.json` 和 `post-event.sh` 複製到你要 demo 的專案的 `.claude/` 資料夾，Claude Code 用 Skill 時會自動送事件。詳見 [`agent-hooks/README.md`](agent-hooks/README.md)。
+**推薦方式（自動，零干擾）**：使用 `.claude/` hooks。把 [`agent-hooks/`](agent-hooks/) 底下的 `hooks.json` 和 `post-event.js` 複製到你要 demo 的專案的 `.claude/` 資料夾，Claude Code 用工具時會自動送事件——包含 skill 開始/結束，以及過程中的**檔案產出、Q&A 決策、checklist 進度**。詳見 [`agent-hooks/README.md`](agent-hooks/README.md)。
 
 ---
 

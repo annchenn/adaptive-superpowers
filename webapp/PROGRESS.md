@@ -84,6 +84,16 @@
 - [x] **跳過步驟顯示**
   - PipelineFlow 偵測「未觸發但後續步驟已完成」的節點 → 標為 `skipped`（虛線邊框、降低透明度）
 
+- [x] **過程資訊（sub-events）**
+  - `POST /api/sub-event`：server 維護 currentSkill，把子事件掛到目前進行中的 skill
+  - agent-hooks 改用 Node hook（`post-event.js`），自動捕捉 3 類通用子事件：
+    - `file`（Write/Edit/NotebookEdit 寫入的檔案）
+    - `question`（AskUserQuestion 的問答決策）
+    - `todo`（TodoWrite 的 checklist 進度）
+  - SessionTimeline：子事件縮排顯示，header「Details」按鈕可開關
+  - StepDetailPanel：點擊 skill 顯示完整過程時間軸（決策/檔案/進度）
+  - server 新增 `PORT` env 支援（預設 3001）
+
 - [ ] **接上 G1 真實 events.jsonl**
   - 確認 G1 寫入的事件格式與 `events.jsonl` 規範一致（見 `web.md` 介面契約）
   - 測試：gap-detection、candidates-generated 事件能在 UI 正確顯示

@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/post-event.sh\"",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/post-event.js\"",
             "async": true
           }
         ]
@@ -14,11 +14,11 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Skill",
+        "matcher": "Skill|Write|Edit|NotebookEdit|AskUserQuestion|TodoWrite",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/post-event.sh\"",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/post-event.js\"",
             "async": true
           }
         ]
