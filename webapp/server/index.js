@@ -138,12 +138,22 @@ app.post('/api/event', (req, res) => {
     return res.status(400).json({ ok: false, error: 'skill and status are required' });
   }
   const timestamp = new Date().toISOString();
-  const event = { timestamp, skill, status, data: data ?? {} };
-  const line = JSON.stringify(event) + '\n';
   try {
-    fs.appendFileSync(EVENTS_FILE, line, 'utf8');
-    // Track the active skill so later sub-events attach to it.
+    // When a new skill starts, auto-complete the previous active skill.
+    // (The Skill tool returns immediately after loading instructions, so we
+    // can't rely on its PostToolUse to mark a phase done — a phase ends when
+    // the next one begins.)
+    if (status === 'started' && currentSkill && currentSkill !== skill) {
+      const completeEvt = { timestamp, skill: currentSkill, status: 'completed', data: {} };
+      fs.appendFileSync(EVENTS_FILE, JSON.stringify(completeEvt) + '\n', 'utf8');
+      io.emit('new-event', completeEvt);
+      console.log(`[api/event] ${currentSkill} → completed (superseded by ${skill})`);
+    }
+
+    const event = { timestamp, skill, status, data: data ?? {} };
+    fs.appendFileSync(EVENTS_FILE, JSON.stringify(event) + '\n', 'utf8');
     if (status === 'started') currentSkill = skill;
+    if (status === 'completed' && currentSkill === skill) currentSkill = null;
     io.emit('new-event', event);
     console.log(`[api/event] ${skill} → ${status}`);
     res.json({ ok: true, event });

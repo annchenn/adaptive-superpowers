@@ -14,7 +14,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Skill|Write|Edit|NotebookEdit|AskUserQuestion|TodoWrite",
+        "matcher": "Write|Edit|NotebookEdit|AskUserQuestion|TodoWrite",
         "hooks": [
           {
             "type": "command",

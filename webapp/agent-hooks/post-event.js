@@ -26,10 +26,13 @@ async function run(payload) {
   const response = payload.tool_response || {};
 
   if (tool === 'Skill') {
+    // Only mark the phase start. The Skill tool returns right after loading
+    // its instructions, so its PostToolUse does NOT mean the phase finished —
+    // the server completes a phase when the next one starts.
+    if (phase !== 'PreToolUse') return;
     const skill = String(input.skill || '').replace(/^[^:]*:/, '');
     if (!skill) return;
-    const status = phase === 'PreToolUse' ? 'started' : 'completed';
-    await post('/api/event', { skill, status, data: {} });
+    await post('/api/event', { skill, status: 'started', data: {} });
     return;
   }
 

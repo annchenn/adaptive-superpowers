@@ -38,12 +38,15 @@ test/
 | 工具 | 捕捉內容 | 送出 |
 |------|---------|------|
 | `Skill`（PreToolUse） | skill 開始 | `started` |
-| `Skill`（PostToolUse） | skill 完成 | `completed` |
 | `Write` / `Edit` / `NotebookEdit` | 寫入的檔案路徑 | sub-event `file` |
 | `AskUserQuestion` | 問題與答案 | sub-event `question` |
 | `TodoWrite` | checklist 進度（done/total + 目前項目） | sub-event `todo` |
 
-3. sub-event 由 server 自動掛到「目前進行中的 skill」底下（最後一個 started 未完成的 skill）
+3. sub-event 由 server 自動掛到「目前進行中的 skill」底下（最後一個 started 的 skill）
+
+**關於「完成」的時機**：`Skill` 工具載入指令後馬上 return，所以它的 PostToolUse 不代表 skill 真的做完。因此 server 採「**下一個 skill 開始時，才把前一個標記完成**」——一個階段持續 active 到下一個階段開始。最後一個 skill 會維持 active（代表正在進行）。
+
+> 若 agent 只 invoke 了一個 skill（例如只跑 brainstorming 就直接寫檔案，沒有 invoke writing-plans / subagent-driven-development），那所有 sub-event 都會掛在那個 skill 下、且它維持 active——這忠實反映 agent 實際只用了那個 skill。要讓各階段分開呈現，agent 需依序 invoke 對應的工作流 skill。
 
 **完全自動，不需要 Claude 記得任何事。**
 
