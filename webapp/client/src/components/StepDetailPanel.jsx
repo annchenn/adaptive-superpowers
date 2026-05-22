@@ -93,49 +93,96 @@ function MetaRow({ label, value, valueColor }) {
   )
 }
 
-const SUB_META = {
-  file:     { glyph: '✎', label: 'File',     color: 'var(--color-accent)' },
-  question: { glyph: '?', label: 'Decision', color: '#3B82F6' },
-  todo:     { glyph: '☑', label: 'Progress', color: '#A78BFA' },
-}
-
-function subEventText(evt) {
-  const d = evt.data || {}
-  if (evt.subType === 'file')     return d.path || 'file'
-  if (evt.subType === 'question') return d.answer ? `${d.question} → ${d.answer}` : (d.question || 'question')
-  if (evt.subType === 'todo')     return d.current ? `${d.done}/${d.total} · ${d.current}` : `${d.done}/${d.total}`
-  return evt.subType || 'event'
-}
-
-function SubEventTimeline({ step, events }) {
-  const subs = getSubEvents(step, events)
-  if (subs.length === 0) return null
-
+function DecisionsSection({ subs }) {
+  const questions = subs.filter(e => e.subType === 'question')
+  if (questions.length === 0) return null
   return (
     <div style={{ marginTop: 14 }}>
-      <SectionLabel>過程 ({subs.length})</SectionLabel>
-      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {subs.map((evt, i) => {
-          const meta = SUB_META[evt.subType] ?? { glyph: '·', color: 'var(--color-border)' }
+      <SectionLabel>📋 Decisions ({questions.length})</SectionLabel>
+      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {questions.map((evt, i) => {
+          const d = evt.data || {}
           return (
-            <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 11, lineHeight: 1.5 }}>
-              <span style={{ flexShrink: 0, width: 14, textAlign: 'center', color: meta.color, marginTop: 1 }}>
-                {meta.glyph}
+            <li key={i} style={{ fontSize: 11, lineHeight: 1.5, display: 'flex', gap: 6, alignItems: 'baseline' }}>
+              <span style={{ color: 'var(--color-foreground)', opacity: 0.55, flexShrink: 0, minWidth: 56 }}>
+                {d.question || '?'}
               </span>
-              <span style={{
-                flex: 1,
-                minWidth: 0,
-                opacity: 0.85,
-                fontFamily: evt.subType === 'file' ? 'var(--font-heading)' : 'var(--font-body)',
-                wordBreak: 'break-word',
-              }}>
-                {subEventText(evt)}
+              <span style={{ color: '#3B82F6', fontWeight: 600, wordBreak: 'break-word' }}>
+                {d.answer || '—'}
               </span>
             </li>
           )
         })}
       </ul>
     </div>
+  )
+}
+
+function FilesSection({ subs }) {
+  const files = subs.filter(e => e.subType === 'file')
+  if (files.length === 0) return null
+  // Dedupe by path, keep latest action
+  const seen = new Map()
+  for (const e of files) seen.set(e.data?.path, e.data?.action || 'write')
+  const list = [...seen.entries()]
+  return (
+    <div style={{ marginTop: 14 }}>
+      <SectionLabel>📄 Files ({list.length})</SectionLabel>
+      <ul style={{
+        listStyle: 'none', padding: 0, margin: 0,
+        display: 'flex', flexDirection: 'column', gap: 3,
+        maxHeight: 180, overflowY: 'auto',
+      }}>
+        {list.map(([path, action], i) => (
+          <li key={i} style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 11, fontFamily: 'var(--font-heading)', lineHeight: 1.5,
+          }}>
+            <span style={{ flexShrink: 0, color: 'var(--color-accent)', width: 12, textAlign: 'center' }}>
+              {action === 'edit' ? '±' : '+'}
+            </span>
+            <span style={{ flex: 1, minWidth: 0, opacity: 0.85, wordBreak: 'break-all' }}>{path}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function ProgressSection({ subs }) {
+  const todos = subs.filter(e => e.subType === 'todo')
+  if (todos.length === 0) return null
+  const latest = todos[todos.length - 1].data || {}
+  const total = latest.total || 0
+  const done = latest.done || 0
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0
+  return (
+    <div style={{ marginTop: 14 }}>
+      <SectionLabel>✓ Progress</SectionLabel>
+      <div style={{ fontSize: 11, fontFamily: 'var(--font-heading)', marginBottom: 6, opacity: 0.85 }}>
+        {done}/{total}{latest.current ? ` · ${latest.current}` : ''}
+      </div>
+      <div style={{ height: 6, background: 'var(--color-secondary)', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{
+          height: '100%', width: `${pct}%`,
+          background: 'var(--color-accent)', borderRadius: 3,
+          transition: 'width 0.3s ease',
+        }} />
+      </div>
+      <div style={{ fontSize: 10, marginTop: 4, opacity: 0.5, fontFamily: 'var(--font-heading)' }}>{pct}%</div>
+    </div>
+  )
+}
+
+function SubEventTimeline({ step, events }) {
+  const subs = getSubEvents(step, events)
+  if (subs.length === 0) return null
+  return (
+    <>
+      <DecisionsSection subs={subs} />
+      <FilesSection subs={subs} />
+      <ProgressSection subs={subs} />
+    </>
   )
 }
 

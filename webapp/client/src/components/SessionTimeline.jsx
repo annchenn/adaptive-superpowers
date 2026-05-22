@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect } from 'react'
 
 const STATUS_COLORS = {
   started:   '#3B82F6',
@@ -10,16 +10,6 @@ const STATUS_LABELS = {
   started:   'START',
   completed: 'DONE',
   error:     'ERROR',
-}
-
-const SUB_GLYPH = { file: '✎', question: '?', todo: '☑' }
-
-function formatSubEvent(evt) {
-  const d = evt.data || {}
-  if (evt.subType === 'file')     return d.path || 'file'
-  if (evt.subType === 'question') return d.answer ? `${d.question} → ${d.answer}` : (d.question || 'question')
-  if (evt.subType === 'todo')     return d.current ? `${d.done}/${d.total} · ${d.current}` : `${d.done}/${d.total}`
-  return evt.subType || 'event'
 }
 
 const SLIDE_IN_CSS = `
@@ -54,7 +44,6 @@ function formatTime(iso) {
 
 export default function SessionTimeline({ events, onStepSelect, selectedStep }) {
   const bottomRef = useRef(null)
-  const [showDetails, setShowDetails] = useState(true)
 
   // Inject CSS once
   useEffect(() => {
@@ -72,8 +61,8 @@ export default function SessionTimeline({ events, onStepSelect, selectedStep }) 
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [events])
 
-  const eventList = (events ?? []).filter(e => showDetails || e.status !== 'sub-event')
-  const parentCount = (events ?? []).filter(e => e.status !== 'sub-event').length
+  // Timeline shows only top-level skill events; sub-events live in StepDetailPanel.
+  const eventList = (events ?? []).filter(e => e.status !== 'sub-event')
 
   return (
     <div style={{
@@ -101,41 +90,20 @@ export default function SessionTimeline({ events, onStepSelect, selectedStep }) 
         }}>
           Session Timeline
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            onClick={() => setShowDetails(v => !v)}
-            title="Toggle sub-event details"
-            style={{
-              background: showDetails ? 'var(--color-accent)' : 'var(--color-secondary)',
-              color: showDetails ? '#0F172A' : 'var(--color-foreground)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 4,
-              padding: '1px 7px',
-              fontSize: 9,
-              fontWeight: 700,
-              fontFamily: 'var(--font-heading)',
-              letterSpacing: '0.05em',
-              cursor: 'pointer',
-              textTransform: 'uppercase',
-            }}
-          >
-            Details
-          </button>
-          <span style={{
-            background: 'var(--color-secondary)',
-            color: 'var(--color-foreground)',
-            fontSize: 11,
-            fontWeight: 700,
-            fontFamily: 'var(--font-heading)',
-            borderRadius: 10,
-            padding: '1px 8px',
-            minWidth: 24,
-            textAlign: 'center',
-            border: '1px solid var(--color-border)',
-          }}>
-            {parentCount}
-          </span>
-        </div>
+        <span style={{
+          background: 'var(--color-secondary)',
+          color: 'var(--color-foreground)',
+          fontSize: 11,
+          fontWeight: 700,
+          fontFamily: 'var(--font-heading)',
+          borderRadius: 10,
+          padding: '1px 8px',
+          minWidth: 24,
+          textAlign: 'center',
+          border: '1px solid var(--color-border)',
+        }}>
+          {eventList.length}
+        </span>
       </div>
 
       {/* Scrollable event list */}
@@ -170,47 +138,6 @@ export default function SessionTimeline({ events, onStepSelect, selectedStep }) 
           </div>
         ) : (
           eventList.map((event, idx) => {
-            // Sub-event: indented, compact, de-emphasized row
-            if (event.status === 'sub-event') {
-              return (
-                <div
-                  key={idx}
-                  className="st-row-enter"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => onStepSelect && onStepSelect(event.skill)}
-                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onStepSelect && onStepSelect(event.skill) }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '3px 12px 3px 28px',
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 10,
-                    color: 'var(--color-foreground)',
-                    opacity: 0.6,
-                    userSelect: 'none',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.opacity = '0.9' }}
-                  onMouseLeave={e => { e.currentTarget.style.opacity = '0.6' }}
-                >
-                  <span style={{ flexShrink: 0, width: 12, textAlign: 'center', color: 'var(--color-accent)' }}>
-                    {SUB_GLYPH[event.subType] ?? '·'}
-                  </span>
-                  <span style={{
-                    flex: 1,
-                    minWidth: 0,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}>
-                    {formatSubEvent(event)}
-                  </span>
-                </div>
-              )
-            }
-
             const isSelected = selectedStep === event.skill
             const badgeColor = STATUS_COLORS[event.status] ?? 'var(--color-border)'
             const badgeLabel = STATUS_LABELS[event.status] ?? (event.status ?? '?').toUpperCase()
