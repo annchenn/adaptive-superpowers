@@ -74,7 +74,7 @@
 - [x] **串接 AI Agent**
   - `POST /api/event` 端點：server 收到後寫入 events.jsonl + emit socket
   - `POST /api/event-detail` 端點：補充細節資訊到已存在的 completed 事件
-  - `agent-hooks/`：drop-in `.claude/` hook 套件，自動在 Skill 工具呼叫前後送事件（無需 CLAUDE.md 指令）
+  - `agent-hooks/`：drop-in `.claude/settings.json` + `post-event.js` 套件，自動在工具呼叫前後送事件（無需 CLAUDE.md 指令）
   - 備用：CLAUDE.md 指令版（手動 curl）
   - 驗收：`curl -X POST http://localhost:3001/api/event ...` → 瀏覽器即時出現事件
 

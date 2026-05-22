@@ -7,31 +7,32 @@
 
 ## 一次性安裝（每個專案做一次）
 
-把這個資料夾的兩個檔案複製到你要 demo 的專案：
+把這個資料夾的兩個檔案複製到你要 demo 的專案的 `.claude/` 資料夾：
 
 ```powershell
 # 假設你的專案在 c:\HW\GenAI\Group\hw2\test
 mkdir c:\HW\GenAI\Group\hw2\test\.claude
-copy webapp\agent-hooks\post-event.js c:\HW\GenAI\Group\hw2\test\.claude\
-copy webapp\agent-hooks\hooks.json    c:\HW\GenAI\Group\hw2\test\.claude\
+copy webapp\agent-hooks\post-event.js test\.claude\
+copy webapp\agent-hooks\settings.json test\.claude\
 ```
 
 完成後該專案結構：
 ```
 test/
-├── CLAUDE.md          ← 不需要 Pipeline Monitor 指令了
 └── .claude/
-    ├── hooks.json
-    └── post-event.js
+    ├── settings.json   ← 專案 hook 設定（Claude Code 自動讀取）
+    └── post-event.js   ← 送事件的腳本
 ```
 
+> **重要**：專案 hook 必須放在 `.claude/settings.json`，不是 `hooks.json`。
+> `hooks.json` 是「外掛」用的格式（如 Superpowers 本體），專案層級不會讀取。
 > 需要 Node.js（與 webapp 同樣的需求）。Hook 用 Node 寫，跨平台。
 
 ---
 
 ## 運作原理
 
-1. Claude Code 啟動 session 時自動讀 `.claude/hooks.json`
+1. Claude Code 啟動 session 時自動讀 `.claude/settings.json` 的 `hooks` 設定
 2. 每次 Claude 呼叫工具，hook 觸發 `post-event.js`，從 stdin 讀 payload 後 POST 給 Web UI：
 
 | 工具 | 捕捉內容 | 送出 |
@@ -63,7 +64,7 @@ test/
 
 ## 移除
 
-要關掉自動串接，把 `.claude/hooks.json` 改名或刪掉即可。
+要關掉自動串接，把 `.claude/settings.json` 改名或刪掉即可。
 
 ---
 

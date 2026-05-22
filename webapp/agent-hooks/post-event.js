@@ -94,8 +94,9 @@ async function post(path, body) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(2000),
     });
   } catch {
-    /* server not running — ignore */
+    /* server not running or slow — ignore so tool calls never block */
   }
 }

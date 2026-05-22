@@ -7,7 +7,7 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/post-event.js\"",
-            "async": true
+            "timeout": 5
           }
         ]
       }
@@ -19,7 +19,7 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/post-event.js\"",
-            "async": true
+            "timeout": 5
           }
         ]
       }
