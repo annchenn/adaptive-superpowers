@@ -207,9 +207,27 @@ app.post('/api/event-detail', (req, res) => {
   }
 });
 
+app.post('/api/control/finish', (req, res) => {
+  if (!currentSkill) {
+    return res.json({ ok: true, skipped: 'no active skill' });
+  }
+  const timestamp = new Date().toISOString();
+  const event = { timestamp, skill: currentSkill, status: 'completed', data: {} };
+  try {
+    fs.appendFileSync(EVENTS_FILE, JSON.stringify(event) + '\n', 'utf8');
+    io.emit('new-event', event);
+    console.log(`[api/control/finish] ${currentSkill} → completed`);
+    currentSkill = null;
+    res.json({ ok: true, event });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.post('/api/control/clear', (req, res) => {
   try {
     if (fs.existsSync(EVENTS_FILE)) fs.writeFileSync(EVENTS_FILE, '', 'utf8');
+    currentSkill = null;
     io.emit('init-events', []);
     console.log('[api/control/clear] events cleared');
     res.json({ ok: true });

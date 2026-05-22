@@ -133,58 +133,105 @@ function DecisionsSection({ subs }) {
   )
 }
 
-function FilesSection({ subs }) {
-  const files = subs.filter(e => e.subType === 'file')
-  if (files.length === 0) return null
-  // Dedupe by path, keep latest action
-  const seen = new Map()
-  for (const e of files) seen.set(e.data?.path, e.data?.action || 'write')
-  const list = [...seen.entries()]
+function FileRow({ path, action }) {
   return (
-    <div style={{ marginTop: 14 }}>
-      <SectionLabel>📄 Files ({list.length})</SectionLabel>
-      <ul style={{
-        listStyle: 'none', padding: 0, margin: 0,
-        display: 'flex', flexDirection: 'column', gap: 3,
-        maxHeight: 180, overflowY: 'auto',
-      }}>
-        {list.map(([path, action], i) => (
-          <li key={i} style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            fontSize: 11, fontFamily: 'var(--font-heading)', lineHeight: 1.5,
-          }}>
-            <span style={{ flexShrink: 0, color: 'var(--color-accent)', width: 12, textAlign: 'center' }}>
-              {action === 'edit' ? '±' : '+'}
-            </span>
-            <span style={{ flex: 1, minWidth: 0, opacity: 0.85, wordBreak: 'break-all' }}>{path}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <li style={{
+      display: 'flex', alignItems: 'center', gap: 6,
+      fontSize: 11, fontFamily: 'var(--font-heading)', lineHeight: 1.5,
+    }}>
+      <span style={{ flexShrink: 0, color: 'var(--color-accent)', width: 12, textAlign: 'center' }}>
+        {action === 'edit' ? '±' : '+'}
+      </span>
+      <span style={{ flex: 1, minWidth: 0, opacity: 0.85, wordBreak: 'break-all' }}>{path}</span>
+    </li>
   )
+}
+
+// Walk sub-events in order: bucket each file under the todo step active when it
+// was written, producing an ordered checklist of steps with nested files.
+function buildProgress(subs) {
+  const steps = []        // { label, files: [{path, action}] }
+  const preFiles = []     // files written before any todo step
+  let cur = null
+  let latest = null
+  for (const e of subs) {
+    if (e.subType === 'todo') {
+      latest = e.data || {}
+      const label = (latest.current || '').trim()
+      if (label && (!cur || cur.label !== label)) {
+        cur = { label, files: [] }
+        steps.push(cur)
+      }
+    } else if (e.subType === 'file' && e.data?.path) {
+      const f = { path: e.data.path, action: e.data.action }
+      ;(cur ? cur.files : preFiles).push(f)
+    }
+  }
+  return { steps, preFiles, latest }
 }
 
 function ProgressSection({ subs }) {
   const todos = subs.filter(e => e.subType === 'todo')
-  if (todos.length === 0) return null
-  const latest = todos[todos.length - 1].data || {}
-  const total = latest.total || 0
-  const done = latest.done || 0
+  const files = subs.filter(e => e.subType === 'file')
+  if (todos.length === 0 && files.length === 0) return null
+
+  // No todos at all → just a flat file list.
+  if (todos.length === 0) {
+    const seen = new Map()
+    for (const e of files) seen.set(e.data?.path, e.data?.action || 'write')
+    return (
+      <div style={{ marginTop: 14 }}>
+        <SectionLabel>📄 Files ({seen.size})</SectionLabel>
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 3, maxHeight: 200, overflowY: 'auto' }}>
+          {[...seen.entries()].map(([path, action], i) => <FileRow key={i} path={path} action={action} />)}
+        </ul>
+      </div>
+    )
+  }
+
+  const { steps, preFiles, latest } = buildProgress(subs)
+  const total = latest?.total || 0
+  const done = latest?.done || 0
   const pct = total > 0 ? Math.round((done / total) * 100) : 0
+
   return (
     <div style={{ marginTop: 14 }}>
-      <SectionLabel>✓ Progress</SectionLabel>
-      <div style={{ fontSize: 11, fontFamily: 'var(--font-heading)', marginBottom: 6, opacity: 0.85 }}>
-        {done}/{total}{latest.current ? ` · ${latest.current}` : ''}
+      <SectionLabel>✓ Progress ({done}/{total})</SectionLabel>
+
+      {/* progress bar */}
+      <div style={{ height: 6, background: 'var(--color-secondary)', borderRadius: 3, overflow: 'hidden', marginBottom: 10 }}>
+        <div style={{ height: '100%', width: `${pct}%`, background: 'var(--color-accent)', borderRadius: 3, transition: 'width 0.3s ease' }} />
       </div>
-      <div style={{ height: 6, background: 'var(--color-secondary)', borderRadius: 3, overflow: 'hidden' }}>
-        <div style={{
-          height: '100%', width: `${pct}%`,
-          background: 'var(--color-accent)', borderRadius: 3,
-          transition: 'width 0.3s ease',
-        }} />
-      </div>
-      <div style={{ fontSize: 10, marginTop: 4, opacity: 0.5, fontFamily: 'var(--font-heading)' }}>{pct}%</div>
+
+      {/* files written before the first tracked step */}
+      {preFiles.length > 0 && (
+        <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 8px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {preFiles.map((f, i) => <FileRow key={i} path={f.path} action={f.action} />)}
+        </ul>
+      )}
+
+      {/* checklist of steps with nested files */}
+      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {steps.map((s, i) => {
+          const isLast = i === steps.length - 1
+          const stepDone = !isLast || (total > 0 && done >= total)
+          return (
+            <li key={i}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, fontSize: 11, lineHeight: 1.5 }}>
+                <span style={{ flexShrink: 0, width: 12, textAlign: 'center', color: stepDone ? 'var(--color-accent)' : '#3B82F6' }}>
+                  {stepDone ? '✓' : '◐'}
+                </span>
+                <span style={{ opacity: stepDone ? 0.85 : 1, fontWeight: stepDone ? 400 : 600 }}>{s.label}</span>
+              </div>
+              {s.files.length > 0 && (
+                <ul style={{ listStyle: 'none', padding: '2px 0 0 18px', margin: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {s.files.map((f, j) => <FileRow key={j} path={f.path} action={f.action} />)}
+                </ul>
+              )}
+            </li>
+          )
+        })}
+      </ul>
     </div>
   )
 }
@@ -195,7 +242,6 @@ function SubEventTimeline({ step, events }) {
   return (
     <>
       <DecisionsSection subs={subs} />
-      <FilesSection subs={subs} />
       <ProgressSection subs={subs} />
     </>
   )

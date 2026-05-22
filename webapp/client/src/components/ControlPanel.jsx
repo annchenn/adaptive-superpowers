@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Zap, BarChart2, Rocket, Loader2, Trash2 } from 'lucide-react'
+import { Zap, BarChart2, Rocket, Loader2, Trash2, CheckCircle2 } from 'lucide-react'
 
 const SPIN_CSS = `
 @keyframes cp-spin {
@@ -69,6 +69,7 @@ export default function ControlPanel({ onClear }) {
   const [errorMsg, setErrorMsg] = useState('')
   const [hovered, setHovered] = useState(null)
   const [clearHovered, setClearHovered] = useState(false)
+  const [finishHovered, setFinishHovered] = useState(false)
 
   useEffect(() => {
     const id = 'cp-spin-style'
@@ -91,6 +92,19 @@ export default function ControlPanel({ onClear }) {
       onClear?.()
     } catch {
       setToast({ message: '✗ Clear failed' })
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  async function handleFinish() {
+    if (loadingId) return
+    setLoadingId('finish')
+    try {
+      await fetch('/api/control/finish', { method: 'POST' })
+      setToast({ message: '✓ Pipeline finished' })
+    } catch {
+      setToast({ message: '✗ Finish failed' })
     } finally {
       setLoadingId(null)
     }
@@ -157,6 +171,38 @@ export default function ControlPanel({ onClear }) {
         >
           {loadingId === 'clear' ? <span className="cp-spin"><Loader2 size={13} /></span> : <Trash2 size={13} />}
           Clear
+        </button>
+
+        {/* Finish button — completes the current active skill */}
+        <button
+          disabled={!!loadingId}
+          onClick={handleFinish}
+          onMouseEnter={() => setFinishHovered(true)}
+          onMouseLeave={() => setFinishHovered(false)}
+          onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)' }}
+          onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)' }}
+          title="Mark the current active skill as completed"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 12px',
+            borderRadius: 6,
+            border: `1px solid ${finishHovered ? 'transparent' : 'var(--color-border)'}`,
+            background: finishHovered ? 'var(--color-accent)' : 'var(--color-secondary)',
+            color: finishHovered ? '#0F172A' : 'var(--color-foreground)',
+            fontSize: 12,
+            fontFamily: 'var(--font-body)',
+            fontWeight: 500,
+            cursor: loadingId ? 'not-allowed' : 'pointer',
+            opacity: loadingId && loadingId !== 'finish' ? 0.5 : 1,
+            transition: 'background 150ms, color 150ms, border-color 150ms, transform 150ms',
+            transform: 'scale(1)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {loadingId === 'finish' ? <span className="cp-spin"><Loader2 size={13} /></span> : <CheckCircle2 size={13} />}
+          Finish
         </button>
 
         {BUTTONS.map(btn => {
