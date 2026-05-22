@@ -207,6 +207,21 @@ app.post('/api/event-detail', (req, res) => {
   }
 });
 
+app.post('/api/evaluation-log', (req, res) => {
+  const body = req.body;
+  if (!body || !Array.isArray(body.candidates)) {
+    return res.status(400).json({ ok: false, error: 'candidates array required' });
+  }
+  try {
+    fs.writeFileSync(EVAL_LOG_FILE, JSON.stringify(body, null, 2), 'utf8');
+    io.emit('eval-log', body);
+    console.log(`[api/evaluation-log] set (${body.candidates.length} candidates)`);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.post('/api/control/finish', (req, res) => {
   if (!currentSkill) {
     return res.json({ ok: true, skipped: 'no active skill' });
@@ -227,8 +242,10 @@ app.post('/api/control/finish', (req, res) => {
 app.post('/api/control/clear', (req, res) => {
   try {
     if (fs.existsSync(EVENTS_FILE)) fs.writeFileSync(EVENTS_FILE, '', 'utf8');
+    if (fs.existsSync(EVAL_LOG_FILE)) fs.rmSync(EVAL_LOG_FILE);
     currentSkill = null;
     io.emit('init-events', []);
+    io.emit('eval-log', null);
     console.log('[api/control/clear] events cleared');
     res.json({ ok: true });
   } catch (err) {

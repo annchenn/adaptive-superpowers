@@ -464,6 +464,7 @@ export default function App() {
         spawnSlime()
       }
     })
+    socket.on('eval-log', (log) => setEvalLog(log))
     socket.on('event-detail', ({ skill, data }) => setEvents(prev => {
       // Enrich latest completed event for this skill
       const target = normalizeSkill(skill)
