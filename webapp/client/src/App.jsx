@@ -22,6 +22,12 @@ const slimeColors = [
 ]
 const gardenTools = ['cursor', 'grass', 'flower', 'cactus']
 
+// executing-plans and subagent-driven-development are two ways to run the same
+// "Execution" phase — map them to one canonical pipeline node.
+const SKILL_ALIAS = { 'executing-plans': 'subagent-driven-development' }
+const normalizeSkill = (s) => SKILL_ALIAS[s] || s
+const normalizeEvent = (e) => (e && SKILL_ALIAS[e.skill] ? { ...e, skill: normalizeSkill(e.skill) } : e)
+
 export default function App() {
   const [events, setEvents] = useState([])
   const [connected, setConnected] = useState(false)
@@ -441,8 +447,9 @@ export default function App() {
   useEffect(() => {
     socket.on('connect', () => setConnected(true))
     socket.on('disconnect', () => setConnected(false))
-    socket.on('init-events', (evts) => setEvents(evts))
-        socket.on('new-event', (evt) => {
+    socket.on('init-events', (evts) => setEvents((evts ?? []).map(normalizeEvent)))
+    socket.on('new-event', (raw) => {
+      const evt = normalizeEvent(raw)
       setEvents(prev => {
         const key = `${evt.timestamp}|${evt.skill}|${evt.status}`
         if (prev.some(e => `${e.timestamp}|${e.skill}|${e.status}` === key)) return prev
@@ -459,10 +466,11 @@ export default function App() {
     })
     socket.on('event-detail', ({ skill, data }) => setEvents(prev => {
       // Enrich latest completed event for this skill
+      const target = normalizeSkill(skill)
       let updated = false
       const next = [...prev]
       for (let i = next.length - 1; i >= 0; i--) {
-        if (!updated && next[i].skill === skill && next[i].status === 'completed') {
+        if (!updated && next[i].skill === target && next[i].status === 'completed') {
           next[i] = { ...next[i], data: { ...(next[i].data || {}), ...data } }
           updated = true
         }

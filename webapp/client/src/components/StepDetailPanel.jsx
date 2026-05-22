@@ -93,6 +93,21 @@ function MetaRow({ label, value, valueColor }) {
   )
 }
 
+function TimingHeader({ step, events }) {
+  const startEvt = getStartEvent(step, events)
+  const doneEvt  = getLatestCompleted(step, events)
+  const duration = formatDuration(startEvt?.timestamp, doneEvt?.timestamp)
+  if (!startEvt && !doneEvt) return null
+  return (
+    <div>
+      {startEvt && <MetaRow label="Started"   value={formatTime(startEvt.timestamp)} />}
+      <MetaRow label="Completed" value={doneEvt ? formatTime(doneEvt.timestamp) : '進行中…'}
+               valueColor={doneEvt ? undefined : '#3B82F6'} />
+      {duration && <MetaRow label="Duration" value={duration} />}
+    </div>
+  )
+}
+
 function DecisionsSection({ subs }) {
   const questions = subs.filter(e => e.subType === 'question')
   if (questions.length === 0) return null
@@ -189,22 +204,13 @@ function SubEventTimeline({ step, events }) {
 /* ── Step-specific detail renderers ────────────────────────────── */
 
 function BrainstormingDetail({ step, events }) {
-  const startEvt = getStartEvent(step, events)
-  const doneEvt  = getLatestCompleted(step, events)
-  const duration = formatDuration(startEvt?.timestamp, doneEvt?.timestamp)
-  const data     = doneEvt?.data ?? {}
-
+  const doneEvt = getLatestCompleted(step, events)
+  const data    = doneEvt?.data ?? {}
+  if (!data.summary) return null
   return (
-    <div>
-      <MetaRow label="Started"   value={formatTime(startEvt?.timestamp)} />
-      <MetaRow label="Completed" value={formatTime(doneEvt?.timestamp)} />
-      {duration && <MetaRow label="Duration" value={duration} />}
-      {data.summary && (
-        <div style={{ marginTop: 12 }}>
-          <SectionLabel>Summary</SectionLabel>
-          <p style={{ fontSize: 12, lineHeight: 1.6, opacity: 0.85 }}>{data.summary}</p>
-        </div>
-      )}
+    <div style={{ marginTop: 12 }}>
+      <SectionLabel>Summary</SectionLabel>
+      <p style={{ fontSize: 12, lineHeight: 1.6, opacity: 0.85 }}>{data.summary}</p>
     </div>
   )
 }
@@ -212,16 +218,17 @@ function BrainstormingDetail({ step, events }) {
 function WritingPlansDetail({ step, events }) {
   const doneEvt = getLatestCompleted(step, events)
   const data    = doneEvt?.data ?? {}
-
+  const hasSteps = Array.isArray(data.steps) && data.steps.length > 0
+  if (!data.plan_summary && !hasSteps) return null
   return (
-    <div>
+    <div style={{ marginTop: 12 }}>
       {data.plan_summary && (
         <div style={{ marginBottom: 12 }}>
           <SectionLabel>Plan Summary</SectionLabel>
           <p style={{ fontSize: 12, lineHeight: 1.6, opacity: 0.85 }}>{data.plan_summary}</p>
         </div>
       )}
-      {Array.isArray(data.steps) && data.steps.length > 0 && (
+      {hasSteps && (
         <div>
           <SectionLabel>Steps</SectionLabel>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
@@ -241,9 +248,6 @@ function WritingPlansDetail({ step, events }) {
           </ul>
         </div>
       )}
-      {!data.plan_summary && !Array.isArray(data.steps) && (
-        <pre style={preStyle}>{JSON.stringify(data, null, 2)}</pre>
-      )}
     </div>
   )
 }
@@ -251,10 +255,11 @@ function WritingPlansDetail({ step, events }) {
 function GapDetectionDetail({ step, events }) {
   const doneEvt = getLatestCompleted(step, events)
   const data    = doneEvt?.data ?? {}
-  const gaps    = Array.isArray(data.gaps) ? data.gaps : []
+  if (!Array.isArray(data.gaps)) return null
+  const gaps    = data.gaps
 
   return (
-    <div>
+    <div style={{ marginTop: 12 }}>
       <MetaRow label="Gaps found" value={String(gaps.length)} valueColor={gaps.length > 0 ? 'var(--color-warning)' : 'var(--color-accent)'} />
       {gaps.length > 0 && (
         <div style={{ marginTop: 12 }}>
@@ -379,9 +384,6 @@ function EvaluationResultDetail({ step, events }) {
           </div>
         </div>
       )}
-      {!data.winner && versions.length === 0 && (
-        <pre style={preStyle}>{JSON.stringify(data, null, 2)}</pre>
-      )}
     </div>
   )
 }
@@ -428,34 +430,24 @@ function SubagentDetail({ step, events }) {
   const total     = data.tasks_total     ?? null
   const completed = data.tasks_completed ?? null
 
+  if (completed == null || total == null) return null
   return (
-    <div>
-      {completed != null && total != null ? (
-        <div>
-          <MetaRow label="Tasks" value={`${completed} / ${total}`} />
-          <div style={{ marginTop: 10 }}>
-            <div style={{
-              height: 6,
-              background: 'var(--color-secondary)',
-              borderRadius: 3,
-              overflow: 'hidden',
-            }}>
-              <div style={{
-                height: '100%',
-                width: `${total > 0 ? Math.round((completed / total) * 100) : 0}%`,
-                background: 'var(--color-accent)',
-                borderRadius: 3,
-                transition: 'width 0.3s ease',
-              }} />
-            </div>
-            <div style={{ fontSize: 10, marginTop: 4, opacity: 0.55, fontFamily: 'var(--font-heading)' }}>
-              {total > 0 ? Math.round((completed / total) * 100) : 0}% complete
-            </div>
-          </div>
+    <div style={{ marginTop: 12 }}>
+      <MetaRow label="Tasks" value={`${completed} / ${total}`} />
+      <div style={{ marginTop: 10 }}>
+        <div style={{ height: 6, background: 'var(--color-secondary)', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{
+            height: '100%',
+            width: `${total > 0 ? Math.round((completed / total) * 100) : 0}%`,
+            background: 'var(--color-accent)',
+            borderRadius: 3,
+            transition: 'width 0.3s ease',
+          }} />
         </div>
-      ) : (
-        <pre style={preStyle}>{JSON.stringify(data, null, 2)}</pre>
-      )}
+        <div style={{ fontSize: 10, marginTop: 4, opacity: 0.55, fontFamily: 'var(--font-heading)' }}>
+          {total > 0 ? Math.round((completed / total) * 100) : 0}% complete
+        </div>
+      </div>
     </div>
   )
 }
@@ -463,11 +455,11 @@ function SubagentDetail({ step, events }) {
 function GitWorktreeDetail({ step, events }) {
   const doneEvt = getLatestCompleted(step, events)
   const data    = doneEvt?.data ?? {}
+  if (!data.branch && !data.path) return null
   return (
-    <div>
+    <div style={{ marginTop: 12 }}>
       {data.branch && <MetaRow label="Branch" value={data.branch} valueColor="var(--color-accent)" />}
       {data.path   && <MetaRow label="Path"   value={data.path} />}
-      {!data.branch && !data.path && <pre style={preStyle}>{JSON.stringify(data, null, 2)}</pre>}
     </div>
   )
 }
@@ -476,8 +468,9 @@ function TDDDetail({ step, events }) {
   const doneEvt = getLatestCompleted(step, events)
   const data    = doneEvt?.data ?? {}
   const cycles  = Array.isArray(data.cycles) ? data.cycles : []
+  if (data.tests_written == null && data.tests_passed == null && cycles.length === 0) return null
   return (
-    <div>
+    <div style={{ marginTop: 12 }}>
       {data.tests_written != null && <MetaRow label="Tests written" value={String(data.tests_written)} />}
       {data.tests_passed  != null && <MetaRow label="Tests passed"  value={String(data.tests_passed)} valueColor="var(--color-accent)" />}
       {cycles.length > 0 && (
@@ -488,7 +481,6 @@ function TDDDetail({ step, events }) {
           ))}
         </div>
       )}
-      {data.tests_written == null && cycles.length === 0 && <pre style={preStyle}>{JSON.stringify(data, null, 2)}</pre>}
     </div>
   )
 }
@@ -518,24 +510,19 @@ function CodeReviewDetail({ step, events }) {
 function FinishBranchDetail({ step, events }) {
   const doneEvt = getLatestCompleted(step, events)
   const data    = doneEvt?.data ?? {}
+  if (!data.action && !data.branch) return null
   return (
-    <div>
+    <div style={{ marginTop: 12 }}>
       {data.action && <MetaRow label="Action" value={data.action} valueColor="var(--color-accent)" />}
       {data.branch && <MetaRow label="Branch" value={data.branch} />}
       {data.tests_verified != null && <MetaRow label="Tests" value={data.tests_verified ? 'Verified ✓' : 'Not verified'} valueColor={data.tests_verified ? 'var(--color-accent)' : 'var(--color-destructive)'} />}
-      {!data.action && !data.branch && <pre style={preStyle}>{JSON.stringify(data, null, 2)}</pre>}
     </div>
   )
 }
 
-function DefaultDetail({ step, events }) {
-  const stepEvents = getStepEvents(step, events)
-  const latest     = stepEvents.length > 0 ? stepEvents[stepEvents.length - 1] : null
-  return (
-    <div>
-      <pre style={preStyle}>{JSON.stringify(latest?.data ?? {}, null, 2)}</pre>
-    </div>
-  )
+function DefaultDetail() {
+  // Timing + grouped sub-events cover the generic case; nothing extra to show.
+  return null
 }
 
 /* ── Shared table styles ─────────────────────────────────────── */
@@ -694,6 +681,7 @@ export default function StepDetailPanel({ step, events, onClose }) {
 
       {/* Body */}
       <div style={{ padding: '12px 14px', fontSize: 12 }}>
+        <TimingHeader step={step} events={events} />
         {renderDetail(step, events)}
         <SubEventTimeline step={step} events={events} />
       </div>
