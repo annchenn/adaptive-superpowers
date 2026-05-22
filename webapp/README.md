@@ -28,10 +28,13 @@ cd webapp && npm run dev:server
 cd webapp\client && npm run dev
 ```
 
-終端 3 — 模擬完整 pipeline
-```bash
-bash demo.sh
+終端 3 — 模擬完整 pipeline（跨平台，推薦）
+```powershell
+cd webapp && npm run demo
 ```
+
+> 也可用 OS 專屬腳本：Windows 用 `demo.ps1`、Mac/Linux 用 `bash demo.sh`。
+> `npm run demo`（Node）在三個平台行為一致，推薦使用。
 
 **3. 開瀏覽器**：http://localhost:5173
 
