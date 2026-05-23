@@ -80,7 +80,7 @@ Output: 呼叫 Group 2 評估 API，傳入候選路徑清單
 ### 詳細任務
 
 **1. 壓力測試執行器**
-- 對每個候選 skill，設計 3 種測試場景：
+- 對每個候選 skill，設計 2 種測試場景：
   - 有 skill：agent 應該遵守規則
   - 沒有 skill：agent 應該違規（baseline）或是效果沒有那麼好
 
