@@ -83,6 +83,33 @@ Output: 呼叫 Group 2 評估 API，傳入候選路徑清單
 - 對每個候選 skill，設計 3 種測試場景：
   - 有 skill：agent 應該遵守規則
   - 沒有 skill：agent 應該違規（baseline）或是效果沒有那麼好
+
+  
+  return json format:
+  ```json
+  {
+    "skill_name": "using-git-worktrees",
+    "candidate": "v1.md",
+    "scenario": "with-skill"\"without-skill",
+    "prompt": "開始實作這個新功能",
+    "agent_actions": [
+      {
+        "type": "text",
+        "content": "我會先建立一個 worktree 來隔離開發"
+      },
+      {
+        "type": "command",
+        "content": "git worktree add ../feature-branch feature-branch",
+        "exit_code": 0,
+        "output": "Preparing worktree (new branch 'feature-branch')"
+      },
+      {
+        "type": "text",
+        "content": "worktree 建好了，開始開發"
+      }
+    ]
+  }
+  ```
 - 用 subagent 跑每個場景，記錄 agent 的實際行為
 
 **2. LLM-as-judge 評分**
@@ -104,7 +131,7 @@ Output: 呼叫 Group 2 評估 API，傳入候選路徑清單
 
   - No contradiction: skill 內部規則是否沒有互相矛盾。
 
-  
+
   （1~4項是針對response json評分，5~8項是針對skill.md評分）
 
 - 輸出：每個候選的分數 JSON
