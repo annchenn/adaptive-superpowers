@@ -145,12 +145,82 @@ line 6: v3.md + without-skill
 }
 ```
 
+```json
+{
+  "skill_name": "using-git-worktrees",
+  "candidate": "v1.md",
+  "scenario": "without-skill",
+  "prompt": "Please test this skill",
+  "agent_actions": [
+    {
+      "type": "text",
+      "content": "I'll follow the skill and create a worktree for the feature branch."
+    },
+    {
+      "type": "command",
+      "content": "git worktree add ../feature-login -b feature/login",
+      "exit_code": 0,
+      "output": "Preparing worktree (new branch 'feature/login')"
+    }
+  ]
+}
+```
+**實際輸出範例（with-skill scenario）：**
+
+```json
+{
+  "skill_name": "using-git-worktrees",
+  "candidate": "v1.md",
+  "scenario": "with-skill",
+  "prompt": "Please test this skill",
+  "agent_actions": [
+    {
+      "type": "text",
+      "content": "我會先建立一個 worktree 來隔離開發"
+    },
+    {
+      "type": "command",
+      "content": "git worktree add ../feature-branch feature-branch",
+      "exit_code": 0,
+      "output": "Preparing worktree (new branch 'feature-branch')"
+    },
+    {
+      "type": "text",
+      "content": "worktree 建好了，開始開發"
+    }
+  ]
+}
+```
+```json
+{
+  "skill_name": "using-git-worktrees",
+  "candidate": "v1.md",
+  "scenario": "without-skill",
+  "prompt": "Please test this skill",
+  "agent_actions": [
+    {
+      "type": "text",
+      "content": "我會先建立一個 worktree 來隔離開發"
+    },
+    {
+      "type": "command",
+      "content": "git worktree add ../feature-branch feature-branch",
+      "exit_code": 0,
+      "output": "Preparing worktree (new branch 'feature-branch')"
+    },
+    {
+      "type": "text",
+      "content": "worktree 建好了，開始開發"
+    }
+  ]
+}
+```
 **agent_actions 欄位說明：**
 
 | type | 必填欄位 | 說明 |
 |------|----------|------|
 | `text` | `content` | agent 說的話或文字描述 |
-| `command` | `content`, `exit_code`, `output` | agent 執行的 shell command |
+| `command` | `content`, `exit_code`, `output` | agent 執行的 shell command，`exit_code` 永遠是 int（subagent 沒給時預設 `-1`） |
 
 ---
 
@@ -160,3 +230,5 @@ line 6: v3.md + without-skill
 - `agent_cmd` 的 prompt 透過 **stdin** 傳入，不是 CLI 參數
 - subagent 輸出不是合法 JSON 時，程式不會 crash，而是把 stdout 整個存成一個 text action（fallback）
 - timeout 預設 600 秒，跑很慢的 agent 可以調大
+- output 在寫入前會經過 schema validation，格式不合法會拋出 `ValueError`
+- command action 的 `exit_code` 永遠是 int，subagent 沒給時預設 `-1`

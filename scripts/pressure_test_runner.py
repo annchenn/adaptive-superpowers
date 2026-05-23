@@ -7,10 +7,12 @@ from pathlib import Path
 from typing import Any
 
 '''
+Example: 
+
 從這裡拿到 run_pressure_tests()，Group 1 在生成候選後直接呼叫：
 records, out_path = run_pressure_tests(
     skill_name="using-git-worktrees",
-    candidates_dir="candidates/examples/",
+    candidates_dir="candidates/using-git-worktrees/",
 )
 
 Group 2 evaluator 帶自訂 prompt 呼叫：
@@ -222,12 +224,67 @@ def normalize_action(action: Any) -> dict[str, Any] | None:
         exit_code = action.get("exit_code")
         output = action.get("output", "")
 
-        normalized["exit_code"] = exit_code if isinstance(exit_code, int) else None
+        # 改動 1：exit_code 不合法時改用 -1，不用 None，確保永遠是 int
+        normalized["exit_code"] = exit_code if isinstance(exit_code, int) else -1
         normalized["output"] = (
             output if isinstance(output, str) else json.dumps(output, ensure_ascii=False)
         )
 
     return normalized
+
+
+def validate_record(record: dict[str, Any]) -> dict[str, Any]:
+    """
+    驗證一筆 result record 是否嚴格符合 schema。
+    不符合時拋出 ValueError。
+    """
+    required_keys = {
+        "skill_name",
+        "candidate",
+        "scenario",
+        "prompt",
+        "agent_actions",
+    }
+
+    if set(record.keys()) != required_keys:
+        raise ValueError(f"record keys mismatch: {set(record.keys())}")
+
+    if record["scenario"] not in {"with-skill", "without-skill"}:
+        raise ValueError(f"invalid scenario: {record['scenario']}")
+
+    if not isinstance(record["agent_actions"], list):
+        raise ValueError("agent_actions must be a list")
+
+    for action in record["agent_actions"]:
+        if not isinstance(action, dict):
+            raise ValueError("each action must be a dict")
+
+        action_type = action.get("type")
+
+        if action_type == "text":
+            if set(action.keys()) != {"type", "content"}:
+                raise ValueError(f"invalid text action keys: {action}")
+
+            if not isinstance(action["content"], str):
+                raise ValueError("text action content must be a string")
+
+        elif action_type == "command":
+            if set(action.keys()) != {"type", "content", "exit_code", "output"}:
+                raise ValueError(f"invalid command action keys: {action}")
+
+            if not isinstance(action["content"], str):
+                raise ValueError("command content must be a string")
+
+            if not isinstance(action["exit_code"], int):
+                raise ValueError("command exit_code must be an int")
+
+            if not isinstance(action["output"], str):
+                raise ValueError("command output must be a string")
+
+        else:
+            raise ValueError(f"invalid action type: {action_type}")
+
+    return record
 
 
 def build_result_record(
@@ -470,6 +527,8 @@ def run_pressure_tests(
                 return_code=return_code,
             )
 
+            # 改動 2：append 前先做 schema validation
+            record = validate_record(record)
             records.append(record)
 
     write_jsonl(out_path, records)
