@@ -82,16 +82,31 @@ Output: 呼叫 Group 2 評估 API，傳入候選路徑清單
 **1. 壓力測試執行器**
 - 對每個候選 skill，設計 3 種測試場景：
   - 有 skill：agent 應該遵守規則
-  - 沒有 skill：agent 應該違規（baseline）
-  - 有 skill + 壓力（時間緊迫、任務複雜）：agent 仍應遵守
+  - 沒有 skill：agent 應該違規（baseline）或是效果沒有那麼好
 - 用 subagent 跑每個場景，記錄 agent 的實際行為
 
 **2. LLM-as-judge 評分**
-- 把 agent 的回應送給另一個 LLM 評分
+- 把 agent 的回應和skill.md送給另一個 LLM 評分 (丟給gemini)
 - 評分維度：
-  - 遵守率（0–40 分）：agent 有沒有照 skill 指示做
-  - 覆蓋率（0–30 分）：skill 有沒有涵蓋各種情境
-  - 簡潔度（0–30 分）：skill 內容是否精準不囉嗦
+  - Required behavior completed: agent 是否完成 skill 明確要求的步驟。
+
+  - Forbidden behavior avoided: agent 是否避免 skill 禁止的行為(若skill沒有禁止的行為則預設得分)。
+
+  - Correct order / workflow: agent 是否按照 skill 指定的流程順序執行。
+
+  - Evidence from response or tool logs: 是否能從 agent response 或 tool calls 看出它真的有遵守，而不是口頭說說。
+
+  - Normal case coverage: 是否清楚處理一般情境。
+
+  - Failure handling: 是否說明失敗、衝突、工具不可用、需要 rollback 時怎麼處理。
+
+  - Clarity and Actoinability: 規則是否清楚易懂且agent看完後是否知道具體要做什麼
+
+  - No contradiction: skill 內部規則是否沒有互相矛盾。
+
+  
+  （1~4項是針對response json評分，5~8項是針對skill.md評分）
+
 - 輸出：每個候選的分數 JSON
 
 **3. 選出 winner 並部署**
@@ -99,7 +114,11 @@ Output: 呼叫 Group 2 評估 API，傳入候選路徑清單
 - 將 winner 複製到 `~/.claude/skills/<skill-name>/SKILL.md`
 - 記錄評估結果到 `evaluation-log.json`（供 Group 3 Web UI 顯示）
 
-**4. 評估 API（供 Group 1 串接）**
+**4. conflict check**
+- 傳給 AI 做新增的skill和現有的skill的confliction check, input: 所有新、舊skill的skill.md裡面的name和description
+- 輸出有哪些新 skill 和舊的skill conflict則不要採用 （刪掉skill）
+
+**5. 評估 API（供 Group 1 串接）**
 ```
 Input:  候選 SKILL.md 路徑清單, skill 名稱
 Output: { winner: "v2.md", scores: { v1: 72, v2: 88, v3: 65 } }
