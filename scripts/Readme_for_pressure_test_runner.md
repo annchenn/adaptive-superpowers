@@ -107,7 +107,7 @@ run_pressure_tests(
 
 ## Output 格式
 
-輸出路徑：`<out_base_dir>/<skill_name>/results.jsonl`
+輸出路徑：`adaptive-superpowers/result/<skill_name>/results.jsonl`
 
 每行一筆 JSON object（JSONL 格式，不是 JSON array）。
 
