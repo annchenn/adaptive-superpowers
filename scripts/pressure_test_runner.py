@@ -7,12 +7,10 @@ from pathlib import Path
 from typing import Any
 
 '''
-Example: 
-
 從這裡拿到 run_pressure_tests()，Group 1 在生成候選後直接呼叫：
 records, out_path = run_pressure_tests(
     skill_name="using-git-worktrees",
-    candidates_dir="candidates/using-git-worktrees/",
+    candidates_dir="candidates/examples/",
 )
 
 Group 2 evaluator 帶自訂 prompt 呼叫：
@@ -398,7 +396,7 @@ def run_pressure_tests(
     skill_name: str,
     candidates_dir: str | Path,
     agent_cmd: str = "claude -p",
-    out_base_dir: str | Path = "pressure-test-results",
+    out_base_dir: str | Path = Path(__file__).parent.parent / "results",
     test_prompt: str = DEFAULT_TEST_PROMPT,
     cwd: str | Path = ".",
     timeout: int = 600,
