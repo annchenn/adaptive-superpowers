@@ -371,6 +371,70 @@ pptx/
 ```
 When: Reference material too large for inline
 
+## Multi-Candidate Generation Mode
+
+When invoked from the **skill gap detection pipeline** (i.e., a gap report exists and `--candidates N` is passed), operate in **multi-candidate mode** instead of the standard single-skill workflow.
+
+### Goal
+
+Produce N distinct candidate SKILL.md files for the same gap, each from a **different authoring angle**, so an automated evaluator can select the best one.
+
+### Output Structure
+
+```
+candidates/
+  <skill-name>/
+    v1.md   # Approach 1
+    v2.md   # Approach 2
+    v3.md   # Approach 3
+    …
+```
+
+### Authoring Angles (use a different one per candidate)
+
+| Angle | Focus |
+|-------|-------|
+| **Process-first** | Step-by-step workflow, numbered procedure, "do X then Y then Z" |
+| **Prohibition-first** | Starts with what NOT to do, anti-patterns, red flags list |
+| **Example-first** | Opens with a concrete realistic scenario, patterns emerge from it |
+| **Principle-first** | Explains the "why" deeply, rules derived from first principles |
+| **Checklist-first** | Structured as a verification checklist, terse and scannable |
+
+For 3 candidates use angles 1–3. For 5 candidates use all 5.
+
+### Candidate Requirements
+
+Every candidate must:
+- Have valid YAML frontmatter (`name`, `description`)
+- Pass the SKILL.md structure checklist (overview, when-to-use, pattern/reference, common mistakes)
+- Be **meaningfully different** from the other candidates — not the same text with synonyms swapped
+- Address the gap's **context** and **expected behavior** fields from the gap report
+
+### Validation Before Writing
+
+Before generating candidates, confirm you have:
+- [ ] The gap's **context** (which tasks need it)
+- [ ] The gap's **expected behavior** (what changes with the skill present)
+- [ ] The **suggested skill name** (kebab-case)
+
+If any are missing, stop and request them from the caller.
+
+### Candidate File Header
+
+Each candidate file must begin with:
+
+```markdown
+<!-- Candidate: v<N> | Angle: <angle-name> | Generated: <timestamp> -->
+```
+
+This metadata line is stripped before deployment but helps evaluators and humans understand what they're comparing.
+
+### Iron Law Still Applies (in Evaluation, not Here)
+
+In multi-candidate mode you **skip** the RED-GREEN-REFACTOR cycle for individual candidates — that cycle is delegated to Group 2's evaluation system (pressure tests + LLM-as-judge). Your job is to produce diverse, high-quality raw candidates. Group 2 will run the tests.
+
+---
+
 ## The Iron Law (Same as TDD)
 
 ```
