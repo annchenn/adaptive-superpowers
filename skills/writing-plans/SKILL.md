@@ -131,6 +131,76 @@ After writing the complete plan, look at the spec with fresh eyes and check the 
 
 If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
 
+## Skill Gap Detection
+
+After writing and self-reviewing the plan, run an automated skill gap check **before** handing off to execution.
+
+**Announce:** "Running skill gap detection to identify missing skills for this plan."
+
+### Step 1: Enumerate Tasks
+
+List every task in the plan. For each task, note the primary action the agent must perform (e.g., "write a database migration", "configure OAuth flow", "set up CI pipeline").
+
+### Step 2: Check Against Existing Skill Library
+
+Scan `~/.claude/skills/` (or the project-local `skills/` directory) for SKILL.md files. For each task ask:
+
+> "Is there an existing skill that guides an agent through this task?"
+
+Judgement criteria:
+- The skill must cover the **specific technique** required — a generic "debugging" skill does not cover "tracing memory leaks in Rust".
+- If unsure, treat it as a gap.
+
+### Step 3: Output Gap List
+
+If any gaps are found, write them to a gap report file:
+
+**Save to:** `docs/superpowers/gaps/YYYY-MM-DD-<feature-name>-gaps.md`
+
+Format:
+```markdown
+# Skill Gap Report — <Feature Name>
+
+Generated: <timestamp>
+
+## Gaps
+
+### Gap 1: <short-name>
+**Context:** Which task(s) need this skill and why.
+**Expected behavior:** What an agent with this skill should do differently from an agent without it.
+**Suggested skill name:** `<kebab-case-name>`
+
+### Gap 2: …
+```
+
+If no gaps are found, write a one-line note: `No skill gaps detected.` and skip candidate generation.
+
+### Step 4: Trigger Candidate Generation
+
+If gaps exist, invoke the candidate generation script for each gap:
+
+```bash
+python scripts/generate-candidates.py \
+  --skill-name "<suggested-skill-name>" \
+  --context "<context description>" \
+  --expected-behavior "<expected behavior>" \
+  --candidates 3
+```
+
+Candidates are written to `candidates/<skill-name>/v1.md`, `v2.md`, `v3.md`.
+
+After all candidates are generated, invoke Group 2 evaluation:
+
+```bash
+python scripts/evaluate-skill.py \
+  --skill "<skill-name>" \
+  --candidates "candidates/<skill-name>"
+```
+
+**REQUIRED SUB-SKILL:** Use `superpowers:skill-gap-detection` for the full detection logic.
+
+---
+
 ## Execution Handoff
 
 After saving the plan, offer execution choice:
