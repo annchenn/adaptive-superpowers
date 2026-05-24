@@ -1,0 +1,20 @@
+{
+  "name": "superpowers-pipeline-monitor",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "scripts": {
+    "dev:server": "node server/index.js",
+    "dev:client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "node server/index.js",
+    "mock": "cross-env MOCK=true node server/index.js",
+    "demo": "node demo.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "socket.io": "^4.7.0",
+    "chokidar": "^3.6.0",
+    "cors": "^2.8.5",
+    "cross-env": "^7.0.3"
+  }
+}
