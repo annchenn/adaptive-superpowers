@@ -1,8 +1,21 @@
 import { useEffect } from 'react'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell
 } from 'recharts'
+
+const DIMS = [
+  { key: 'required_behavior_completed', label: 'Required behavior',  color: '#22C55E' },
+  { key: 'forbidden_behavior_avoided',  label: 'Forbidden avoided',  color: '#3B82F6' },
+  { key: 'correct_order_workflow',      label: 'Correct order',      color: '#F59E0B' },
+  { key: 'evidence_from_logs',          label: 'Evidence',           color: '#A855F7' },
+  { key: 'normal_case_coverage',        label: 'Normal coverage',    color: '#06B6D4' },
+  { key: 'failure_handling',            label: 'Failure handling',   color: '#EF4444' },
+  { key: 'clarity_and_actionability',   label: 'Clarity',            color: '#EC4899' },
+  { key: 'no_contradiction',            label: 'No contradiction',   color: '#94A3B8' },
+]
+
+const MAX_TOTAL = 80
 
 const SHIMMER_CSS = `
 @keyframes ed-shimmer {
@@ -37,9 +50,10 @@ function SkeletonBars() {
 }
 
 function downloadCSV(data) {
-  const header = 'candidate,compliance,coverage,conciseness,total'
+  const dimKeys = DIMS.map(d => d.key)
+  const header = ['candidate', ...dimKeys, 'total'].join(',')
   const rows = data.map(d =>
-    `${d.name},${d.compliance},${d.coverage},${d.conciseness},${d.total}`
+    [d.name, ...dimKeys.map(k => d[k] ?? 0), d.total].join(',')
   )
   const csv = [header, ...rows].join('\n')
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
@@ -61,13 +75,11 @@ export default function EvaluationDashboard({ evalLog }) {
     }
   }, [])
 
-  const chartData = evalLog?.candidates?.map(c => ({
-    name: c.file.replace(/\.md$/i, ''),
-    compliance: c.scores?.compliance ?? 0,
-    coverage: c.scores?.coverage ?? 0,
-    conciseness: c.scores?.conciseness ?? 0,
-    total: c.total ?? 0,
-  })) ?? []
+  const chartData = evalLog?.candidates?.map(c => {
+    const entry = { name: c.file.replace(/\.md$/i, ''), total: c.total ?? 0 }
+    DIMS.forEach(d => { entry[d.key] = c.scores?.[d.key] ?? 0 })
+    return entry
+  }) ?? []
 
   const winnerName = evalLog?.winner?.replace(/\.md$/i, '')
   const winnerEntry = chartData.find(d => d.name === winnerName) ?? chartData[chartData.length - 1]
@@ -131,13 +143,13 @@ export default function EvaluationDashboard({ evalLog }) {
         )}
       </div>
 
-      {/* Chart or skeleton */}
+      {/* Total score bar chart or skeleton */}
       {evalLog ? (
-        <ResponsiveContainer width="100%" height={220}>
+        <ResponsiveContainer width="100%" height={Math.max(80, chartData.length * 36)}>
           <BarChart
             layout="vertical"
             data={chartData}
-            margin={{ top: 4, right: 16, left: 8, bottom: 4 }}
+            margin={{ top: 4, right: 40, left: 8, bottom: 4 }}
           >
             <CartesianGrid
               strokeDasharray="3 3"
@@ -152,34 +164,45 @@ export default function EvaluationDashboard({ evalLog }) {
             />
             <XAxis
               type="number"
-              domain={[0, 100]}
+              domain={[0, MAX_TOTAL]}
               tick={{ fill: 'var(--color-foreground)', fontSize: 10, opacity: 0.6 }}
             />
             <Tooltip
+              formatter={(value, name, props) => {
+                const scores = evalLog.candidates.find(
+                  c => c.file.replace(/\.md$/i, '') === props.payload.name
+                )?.scores ?? {}
+                return [
+                  <span key="tip">
+                    {`Total: ${value}/${MAX_TOTAL}`}
+                    {DIMS.map(d => (
+                      <div key={d.key} style={{ color: d.color }}>
+                        {`${d.label}: ${scores[d.key] ?? 0}/10`}
+                      </div>
+                    ))}
+                  </span>,
+                  '',
+                ]
+              }}
               contentStyle={{
                 background: 'var(--color-primary)',
                 border: '1px solid var(--color-border)',
                 borderRadius: 6,
-                fontSize: 12,
+                fontSize: 11,
                 fontFamily: 'Fira Code, monospace',
                 color: 'var(--color-foreground)',
               }}
               cursor={{ fill: 'rgba(71,85,105,0.15)' }}
             />
-            <Legend
-              wrapperStyle={{ fontSize: 11, fontFamily: 'Fira Code, monospace', paddingTop: 4 }}
-            />
-            <Bar dataKey="compliance" name="compliance" fill="#22C55E" radius={[0, 3, 3, 0]}>
+            <Bar dataKey="total" name="total" radius={[0, 3, 3, 0]} maxBarSize={22}>
               {chartData.map((entry, i) => (
                 <Cell
                   key={i}
-                  fill="#22C55E"
-                  style={entry.name === winnerName ? { filter: 'brightness(1.2)' } : {}}
+                  fill={entry.name === winnerName ? '#22C55E' : '#3B82F6'}
+                  style={entry.name === winnerName ? { filter: 'brightness(1.1)' } : {}}
                 />
               ))}
             </Bar>
-            <Bar dataKey="coverage" name="coverage" fill="#3B82F6" radius={[0, 3, 3, 0]} />
-            <Bar dataKey="conciseness" name="conciseness" fill="#F59E0B" radius={[0, 3, 3, 0]} />
           </BarChart>
         </ResponsiveContainer>
       ) : (
@@ -188,6 +211,60 @@ export default function EvaluationDashboard({ evalLog }) {
           <p style={{ fontSize: 11, color: 'var(--color-foreground)', opacity: 0.4, marginTop: 4, textAlign: 'center' }}>
             等待 G2 評估結果...
           </p>
+        </div>
+      )}
+
+      {/* Dimension breakdown table */}
+      {evalLog && chartData.length > 0 && (
+        <div style={{ marginTop: 10, overflowX: 'auto' }}>
+          <table style={{
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontSize: 10,
+            fontFamily: 'Fira Code, monospace',
+            color: 'var(--color-foreground)',
+          }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left', padding: '3px 6px', opacity: 0.5, fontWeight: 400 }}>dimension</th>
+                {chartData.map(c => (
+                  <th key={c.name} style={{
+                    textAlign: 'center',
+                    padding: '3px 6px',
+                    color: c.name === winnerName ? '#22C55E' : 'var(--color-foreground)',
+                    fontWeight: c.name === winnerName ? 700 : 400,
+                  }}>
+                    {c.name}{c.name === winnerName ? ' ♛' : ''}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {DIMS.map(d => (
+                <tr key={d.key} style={{ borderTop: '1px solid rgba(71,85,105,0.15)' }}>
+                  <td style={{ padding: '3px 6px', color: d.color, opacity: 0.9 }}>{d.label}</td>
+                  {chartData.map(c => (
+                    <td key={c.name} style={{ textAlign: 'center', padding: '3px 6px' }}>
+                      {c[d.key] ?? 0}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+              <tr style={{ borderTop: '1px solid rgba(71,85,105,0.4)' }}>
+                <td style={{ padding: '3px 6px', opacity: 0.5 }}>total</td>
+                {chartData.map(c => (
+                  <td key={c.name} style={{
+                    textAlign: 'center',
+                    padding: '3px 6px',
+                    fontWeight: 700,
+                    color: c.name === winnerName ? '#22C55E' : 'var(--color-foreground)',
+                  }}>
+                    {c.total}
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -210,7 +287,7 @@ export default function EvaluationDashboard({ evalLog }) {
           <strong>{winnerEntry.name}</strong>
           <span style={{ fontSize: 14 }}>♛</span>
           <span style={{ marginLeft: 'auto', opacity: 0.8 }}>
-            Total: {winnerEntry.total}/100
+            Total: {winnerEntry.total}/{MAX_TOTAL}
           </span>
         </div>
       )}

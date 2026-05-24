@@ -93,9 +93,9 @@ app.get('/api/evaluation-log', (req, res) => {
       skill: "data-migration",
       winner: "v2.md",
       candidates: [
-        { file: "v1.md", scores: { compliance: 30, coverage: 22, conciseness: 20 }, total: 72 },
-        { file: "v2.md", scores: { compliance: 38, coverage: 28, conciseness: 22 }, total: 88 },
-        { file: "v3.md", scores: { compliance: 25, coverage: 20, conciseness: 25 }, total: 70 },
+        { file: "v1.md", scores: { required_behavior_completed: 7, forbidden_behavior_avoided: 6, correct_order_workflow: 7, evidence_from_logs: 6, normal_case_coverage: 7, failure_handling: 4, clarity_and_actionability: 7, no_contradiction: 6 }, total: 50 },
+        { file: "v2.md", scores: { required_behavior_completed: 9, forbidden_behavior_avoided: 8, correct_order_workflow: 9, evidence_from_logs: 8, normal_case_coverage: 9, failure_handling: 6, clarity_and_actionability: 9, no_contradiction: 8 }, total: 66 },
+        { file: "v3.md", scores: { required_behavior_completed: 7, forbidden_behavior_avoided: 7, correct_order_workflow: 6, evidence_from_logs: 7, normal_case_coverage: 7, failure_handling: 3, clarity_and_actionability: 8, no_contradiction: 7 }, total: 52 },
       ]
     });
   }
