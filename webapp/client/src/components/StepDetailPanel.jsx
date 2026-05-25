@@ -372,18 +372,21 @@ function CandidatesGeneratedDetail({ step, events }) {
 function EvaluationResultDetail({ step, events }) {
   const doneEvt = getLatestCompleted(step, events)
   const data    = doneEvt?.data ?? {}
+  // G2 evaluation-result event: data.scores is a flat { file: total } map.
+  // (The per-dimension breakdown lives in the Evaluation Dashboard.)
   const scores  = data.scores ?? {}
-  const versions = Object.keys(scores)
-  const metrics  = ['compliance', 'coverage', 'conciseness', 'total']
+  const totalOf = (v) => (typeof v === 'object' && v !== null ? (v.total ?? 0) : (v ?? 0))
+  const rows = Object.keys(scores)
+    .map(file => ({ file, total: totalOf(scores[file]) }))
+    .sort((a, b) => b.total - a.total)
+
+  if (!data.winner && rows.length === 0) return null
 
   return (
-    <div>
+    <div style={{ marginTop: 12 }}>
       {data.winner && (
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          marginBottom: 14,
+          display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
           padding: '8px 12px',
           background: 'rgba(34,197,94,0.1)',
           border: '1px solid rgba(34,197,94,0.3)',
@@ -396,38 +399,35 @@ function EvaluationResultDetail({ step, events }) {
               {data.winner}
             </div>
           </div>
+          {data.subject && (
+            <span style={{ marginLeft: 'auto', fontSize: 10, opacity: 0.6, fontFamily: 'var(--font-heading)' }}>
+              {data.subject}
+            </span>
+          )}
         </div>
       )}
-      {versions.length > 0 && (
+      {rows.length > 0 && (
         <div>
           <SectionLabel>Scores</SectionLabel>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, fontFamily: 'var(--font-heading)' }}>
-              <thead>
-                <tr>
-                  <th style={thStyle}>Version</th>
-                  {metrics.map(m => (
-                    <th key={m} style={thStyle}>{m.charAt(0).toUpperCase() + m.slice(1)}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {versions.map(ver => (
-                  <tr key={ver} style={{ background: data.winner === ver ? 'rgba(34,197,94,0.07)' : 'transparent' }}>
-                    <td style={{ ...tdStyle, fontWeight: data.winner === ver ? 700 : 400, color: data.winner === ver ? 'var(--color-accent)' : 'inherit' }}>
-                      {data.winner === ver && <Crown size={10} style={{ color: 'var(--color-warning)', marginRight: 4, display: 'inline' }} />}
-                      {ver}
-                    </td>
-                    {metrics.map(m => (
-                      <td key={m} style={tdStyle}>
-                        {scores[ver]?.[m] != null ? scores[ver][m] : '—'}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {rows.map(({ file, total }) => {
+              const isWinner = file === data.winner
+              return (
+                <li key={file} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontFamily: 'var(--font-heading)' }}>
+                  <span style={{ flexShrink: 0, width: 12, textAlign: 'center', color: 'var(--color-warning)' }}>
+                    {isWinner ? '♛' : ''}
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0, color: isWinner ? 'var(--color-accent)' : 'inherit', fontWeight: isWinner ? 700 : 400 }}>
+                    {file}
+                  </span>
+                  <span style={{ opacity: 0.85 }}>{total}/80</span>
+                </li>
+              )
+            })}
+          </ul>
+          <p style={{ fontSize: 10, opacity: 0.45, marginTop: 6, fontFamily: 'var(--font-body)' }}>
+            8 維度細項見右側 Evaluation Dashboard
+          </p>
         </div>
       )}
     </div>

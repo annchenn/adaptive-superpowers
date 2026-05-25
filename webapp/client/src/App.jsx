@@ -26,7 +26,32 @@ const gardenTools = ['cursor', 'grass', 'flower', 'cactus']
 // "Execution" phase — map them to one canonical pipeline node.
 const SKILL_ALIAS = { 'executing-plans': 'subagent-driven-development' }
 const normalizeSkill = (s) => SKILL_ALIAS[s] || s
-const normalizeEvent = (e) => (e && SKILL_ALIAS[e.skill] ? { ...e, skill: normalizeSkill(e.skill) } : e)
+
+// G2 (evaluate-skill.py) uses a different event schema: it puts the evaluated
+// skill name in `skill` and the event type in `status`. Translate those into
+// our pipeline model, where `skill` is the pipeline step and `status` is
+// started/completed. The evaluated skill name is preserved in data.subject.
+const G2_STATUS_MAP = {
+  'evaluation-result': { skill: 'evaluation-result', status: 'completed' },
+  'skill-deployed':    { skill: 'skill-deployed',    status: 'completed' },
+  'conflict-detected': { skill: 'skill-deployed',    status: 'error'     },
+}
+
+function normalizeEvent(e) {
+  if (!e) return e
+  // G2 evaluation events
+  const g2 = G2_STATUS_MAP[e.status]
+  if (g2) {
+    return { ...e, skill: g2.skill, status: g2.status, data: { ...(e.data || {}), subject: e.skill } }
+  }
+  // G2 evaluation "started" carries a candidates list → map to the eval node start
+  if (e.status === 'started' && e.data && Array.isArray(e.data.candidates)) {
+    return { ...e, skill: 'evaluation-result', status: 'started', data: { ...e.data, subject: e.skill } }
+  }
+  // executing-plans → Execution node
+  if (SKILL_ALIAS[e.skill]) return { ...e, skill: normalizeSkill(e.skill) }
+  return e
+}
 
 export default function App() {
   const [events, setEvents] = useState([])

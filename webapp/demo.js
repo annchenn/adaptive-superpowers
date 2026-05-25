@@ -99,25 +99,34 @@ async function main() {
     },
   });
 
-  // 6. Evaluation (G2) — event detail + dashboard
+  // 6. Evaluation (G2) — 8-dimension scores (each 0-10, total max 80)
+  const dims = (a, b, c, d, e, f, g, h) => ({
+    required_behavior_completed: a, forbidden_behavior_avoided: b,
+    correct_order_workflow: c, evidence_from_logs: d,
+    normal_case_coverage: e, failure_handling: f,
+    clarity_and_actionability: g, no_contradiction: h,
+  });
+  const sum = (s) => Object.values(s).reduce((t, v) => t + v, 0);
+  const s1 = dims(8, 7, 8, 7, 8, 4, 8, 7);
+  const s2 = dims(10, 9, 10, 9, 9, 6, 10, 9);
+  const s3 = dims(7, 7, 6, 7, 7, 3, 8, 7);
   const evalLog = {
     skill: 'accordion-a11y',
     winner: 'v2.md',
     candidates: [
-      { file: 'v1.md', scores: { compliance: 30, coverage: 22, conciseness: 20 }, total: 72 },
-      { file: 'v2.md', scores: { compliance: 38, coverage: 28, conciseness: 22 }, total: 88 },
-      { file: 'v3.md', scores: { compliance: 25, coverage: 20, conciseness: 20 }, total: 65 },
+      { file: 'v1.md', scores: s1, total: sum(s1) },
+      { file: 'v2.md', scores: s2, total: sum(s2) },
+      { file: 'v3.md', scores: s3, total: sum(s3) },
     ],
+    scores: { 'v1.md': sum(s1), 'v2.md': sum(s2), 'v3.md': sum(s3) },
   };
   await post('/api/evaluation-log', evalLog);
+  // evaluation-result event carries the flat { file: total } summary (G2 shape)
   await phase('evaluation-result', {
     data: {
       winner: 'v2.md',
-      scores: {
-        v1: { compliance: 30, coverage: 22, conciseness: 20, total: 72 },
-        v2: { compliance: 38, coverage: 28, conciseness: 22, total: 88 },
-        v3: { compliance: 25, coverage: 20, conciseness: 20, total: 65 },
-      },
+      subject: 'accordion-a11y',
+      scores: { 'v1.md': sum(s1), 'v2.md': sum(s2), 'v3.md': sum(s3) },
     },
   });
 
