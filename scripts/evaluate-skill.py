@@ -27,31 +27,39 @@ Output:
 
 import argparse
 import json
+import os
 import re
 import sys
+from pathlib import Path as _Path
+
+def _load_dotenv() -> None:
+    env_path = _Path(__file__).parent.parent / ".env"
+    if not env_path.exists():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            k, _, v = line.partition("=")
+            os.environ.setdefault(k.strip(), v.strip())
+
+_load_dotenv()
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
 import urllib.request
-from google import genai
-from google.genai import types
 
-
-LOCATION = "us-central1"
-MODEL = "gemini-2.5-flash"
+DEFAULT_MODELS = {
+    "anthropic": "claude-3-5-haiku-20241022",
+    "openai": "gpt-4o-mini",
+}
 WEBAPP_API = "http://localhost:3001"
 
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 
 
-def load_project_id() -> str:
-    env_path = PROJECT_ROOT / ".env"
-    for line in env_path.read_text(encoding="utf-8").splitlines():
-        if line.startswith("project_id="):
-            return line.split("=", 1)[1].strip()
-    raise ValueError(f"project_id not found in {env_path}")
+
 JUDGE_PROMPT_PATH = SCRIPT_DIR / "judge-prompt.md"
 EVAL_LOG_PATH = PROJECT_ROOT / "evaluation-log.json"
 EVENTS_LOG_PATH = PROJECT_ROOT / "events.jsonl"
@@ -127,13 +135,36 @@ Agent actions:
 """
 
 
-def call_gemini(judge_prompt: str, user_message: str, client: genai.Client) -> dict:
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=user_message,
-        config=types.GenerateContentConfig(system_instruction=judge_prompt),
-    )
-    raw = response.text.strip()
+def call_llm(judge_prompt: str, user_message: str, provider: str, model: str) -> dict:
+    if provider == "anthropic":
+        try:
+            import anthropic
+        except ImportError:
+            sys.exit("anthropic package not installed. Run: pip install anthropic")
+        client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+        msg = client.messages.create(
+            model=model,
+            max_tokens=2048,
+            system=judge_prompt,
+            messages=[{"role": "user", "content": user_message}],
+        )
+        raw = msg.content[0].text.strip()
+    elif provider == "openai":
+        try:
+            from openai import OpenAI
+        except ImportError:
+            sys.exit("openai package not installed. Run: pip install openai")
+        client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": judge_prompt},
+                {"role": "user", "content": user_message},
+            ],
+        )
+        raw = resp.choices[0].message.content.strip()
+    else:
+        sys.exit(f"Unknown provider: {provider}. Use 'anthropic' or 'openai'.")
     raw = re.sub(r"^```(?:json)?\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
     return json.loads(raw)
@@ -182,9 +213,9 @@ def _load_existing_skills() -> list[dict]:
     return skills
 
 
-def check_conflict(skill_name: str, winner_md: str, client: genai.Client) -> tuple[bool, str]:
+def check_conflict(skill_name: str, winner_md: str, provider: str, model: str) -> tuple[bool, str]:
     """
-    Ask Gemini whether the new skill conflicts with any existing skill.
+    Ask LLM whether the new skill conflicts with any existing skill.
     Returns (has_conflict, reason).
     """
     new_meta = _parse_frontmatter(winner_md)
@@ -198,6 +229,7 @@ def check_conflict(skill_name: str, winner_md: str, client: genai.Client) -> tup
         for s in existing
     )
 
+    system = "You are a skill library conflict checker. Return only JSON."
     prompt = f"""You are checking whether a new skill conflicts with existing skills in a skill library.
 
 A conflict means: the new skill covers essentially the same situation as an existing skill,
@@ -214,17 +246,7 @@ Does the new skill conflict with any existing skill?
 Answer with ONLY this JSON, no explanation:
 {{"conflict": true/false, "conflicting_skill": "<name or null>", "reason": "<one sentence>"}}"""
 
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction="You are a skill library conflict checker. Return only JSON."
-        ),
-    )
-    raw = response.text.strip()
-    raw = re.sub(r"^```(?:json)?\s*", "", raw)
-    raw = re.sub(r"\s*```$", "", raw)
-    result = json.loads(raw)
+    result = call_llm(system, prompt, provider, model)
     return result.get("conflict", False), result.get("reason", "")
 
 
@@ -283,14 +305,15 @@ def evaluate_candidate(
     with_skill_record: dict,
     without_skill_record: dict,
     judge_prompt: str,
-    client: genai.Client,
+    provider: str,
+    model: str,
 ) -> dict:
     print(f"  judging {candidate} ...", end=" ", flush=True)
 
     user_msg = build_user_message(
         skill_name, candidate, skill_md, with_skill_record, without_skill_record
     )
-    score_json = call_gemini(judge_prompt, user_msg, client)
+    score_json = call_llm(judge_prompt, user_msg, provider, model)
     score_json["total"] = compute_total(score_json["scores"])
 
     print(f"total={score_json['total']}")
@@ -308,6 +331,8 @@ def run_evaluation(
     candidates_dir: Path | None = None,
     records: list[dict] | None = None,
     results_jsonl: Path | None = None,
+    provider: str = "anthropic",
+    model: str | None = None,
 ) -> dict:
     """
     Main evaluation entry point.
@@ -316,8 +341,11 @@ def run_evaluation(
     results_jsonl  defaults to: results/<skill_name>/results.jsonl
     records can be passed directly from pressure_test_runner.run_pressure_tests()
     """
-    project_id = load_project_id()
-    client = genai.Client(vertexai=True, project=project_id, location=LOCATION)
+    if model is None:
+        model = DEFAULT_MODELS.get(provider, DEFAULT_MODELS["anthropic"])
+    key_var = "ANTHROPIC_API_KEY" if provider == "anthropic" else "OPENAI_API_KEY"
+    if not os.environ.get(key_var):
+        sys.exit(f"{key_var} environment variable not set")
     judge_prompt = load_judge_prompt()
 
     # load records from JSONL if not passed directly
@@ -366,7 +394,7 @@ def run_evaluation(
         result = evaluate_candidate(
             skill_name, candidate, skill_md,
             with_skill, without_skill,
-            judge_prompt, client,
+            judge_prompt, provider, model,
         )
         evaluations.append(result)
 
@@ -407,7 +435,7 @@ def run_evaluation(
     winner_md = winner_file.read_text(encoding="utf-8")
 
     print(f"\nChecking conflicts for {winner} ...")
-    has_conflict, reason = check_conflict(skill_name, winner_md, client)
+    has_conflict, reason = check_conflict(skill_name, winner_md, provider, model)
 
     if has_conflict:
         print(f"  [conflict] {reason} — skipping deploy")
@@ -452,6 +480,17 @@ def main() -> None:
         default=None,
         help="Path to results.jsonl (default: results/<skill>/results.jsonl)",
     )
+    parser.add_argument(
+        "--provider",
+        default="anthropic",
+        choices=["anthropic", "openai"],
+        help="LLM provider for judging (default: anthropic)",
+    )
+    parser.add_argument(
+        "--model",
+        default=None,
+        help="Model name (default: claude-3-5-haiku-20241022 for anthropic, gpt-4o-mini for openai)",
+    )
     args = parser.parse_args()
 
     candidates_dir = Path(args.candidates) if args.candidates else PROJECT_ROOT / "candidates" / args.skill
@@ -461,6 +500,8 @@ def main() -> None:
         skill_name=args.skill,
         candidates_dir=candidates_dir,
         results_jsonl=results_jsonl,
+        provider=args.provider,
+        model=args.model,
     )
     print(json.dumps({"winner": result["winner"], "scores": result["scores"]}, indent=2))
 
