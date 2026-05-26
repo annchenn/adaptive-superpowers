@@ -17,6 +17,9 @@ import sys, json
 with open(sys.argv[1]) as f:
     data = json.load(f)
 skill = data.get('tool_input', {}).get('skill', 'unknown')
+# strip plugin prefix (e.g. "adaptive-superpowers:brainstorming" → "brainstorming")
+if ':' in skill:
+    skill = skill.split(':', 1)[1]
 print(skill)
 " "$TMPFILE" 2>/dev/null || echo "unknown")
 
