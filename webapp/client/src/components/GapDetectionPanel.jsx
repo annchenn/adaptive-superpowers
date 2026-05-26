@@ -1,6 +1,6 @@
 export default function GapDetectionPanel({ events }) {
   const gapEvents = (events ?? []).filter(e =>
-    (e.skill === 'gap-detected' || e.skill === 'gap-detection') &&
+    (e.skill === 'gap-detected' || e.skill === 'gap-detection' || e.skill === 'skill-gap-detection') &&
     e.status === 'completed' &&
     Array.isArray(e.data?.gaps)
   )

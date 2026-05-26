@@ -334,15 +334,35 @@ function GapDetectionDetail({ step, events }) {
   )
 }
 
-function CandidatesGeneratedDetail({ step, events }) {
-  const doneEvt = getLatestCompleted(step, events)
-  const data    = doneEvt?.data ?? {}
-  const files   = Array.isArray(data.files) ? data.files : []
+function CandidatesGeneratedDetail({ events }) {
+  // generate-candidates.py emits these as statuses on `skill-gap-detection`
+  // events, not as a separate skill. Find the latest such event.
+  // Backward-compat: also accept skill === 'candidates-generated' (legacy demos).
+  const matches = (events ?? []).filter(e =>
+    (e.skill === 'skill-gap-detection' &&
+      (e.status === 'candidates-generated' || e.status === 'candidates-generating')) ||
+    e.skill === 'candidates-generated'
+  )
+  if (matches.length === 0) return null
+  const latest = matches[matches.length - 1]
+  const data   = latest.data ?? {}
+
+  // Support both new (skill_name, paths) and legacy (skill, files) shapes
+  const skillName = data.skill_name ?? data.skill
+  const count     = data.count
+  const files     = Array.isArray(data.paths) ? data.paths
+                  : Array.isArray(data.files) ? data.files
+                  : []
+
+  if (!skillName && count == null && files.length === 0) return null
 
   return (
-    <div>
-      {data.skill && <MetaRow label="Skill"      value={data.skill} />}
-      {data.count  && <MetaRow label="Candidates" value={String(data.count)} />}
+    <div style={{ marginTop: 12 }}>
+      {latest.status === 'candidates-generating' && (
+        <MetaRow label="Status" value="generating…" valueColor="#3B82F6" />
+      )}
+      {skillName && <MetaRow label="Skill"      value={skillName} />}
+      {count != null && <MetaRow label="Candidates" value={String(count)} />}
       {files.length > 0 && (
         <div style={{ marginTop: 12 }}>
           <SectionLabel>Files</SectionLabel>
