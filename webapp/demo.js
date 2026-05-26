@@ -76,8 +76,8 @@ async function main() {
     },
   });
 
-  // 4. Gap detection (G1)
-  await phase('gap-detection', {
+  // 4. Skill gap detection (G1) — pipeline node id is 'skill-gap-detection'
+  await phase('skill-gap-detection', {
     data: {
       gaps: [
         { name: 'accordion-a11y', description: '缺少無障礙手風琴的實作 skill：鍵盤操作與 aria 狀態' },
@@ -86,18 +86,24 @@ async function main() {
     },
   });
 
-  // 5. Candidate generation (G1)
-  await phase('candidates-generated', {
-    data: {
-      skill: 'accordion-a11y',
-      count: 3,
-      files: [
-        'candidates/accordion-a11y/v1.md',
-        'candidates/accordion-a11y/v2.md',
-        'candidates/accordion-a11y/v3.md',
-      ],
-    },
+  // 5. Candidate generation (G1) — generate-candidates.py emits these as
+  // statuses ON the skill-gap-detection event stream, not as a separate skill.
+  // PipelineFlow.matchesStep maps status='candidates-generating'/'candidates-generated' to the Candidate Generation node.
+  await event('skill-gap-detection', 'candidates-generating', {
+    skill_name: 'accordion-a11y',
+    count: 3,
   });
+  await sleep(700);
+  await event('skill-gap-detection', 'candidates-generated', {
+    skill_name: 'accordion-a11y',
+    count: 3,
+    paths: [
+      'candidates/accordion-a11y/v1.md',
+      'candidates/accordion-a11y/v2.md',
+      'candidates/accordion-a11y/v3.md',
+    ],
+  });
+  await sleep(700);
 
   // 6. Evaluation (G2) — 8-dimension scores (each 0-10, total max 80)
   const dims = (a, b, c, d, e, f, g, h) => ({
