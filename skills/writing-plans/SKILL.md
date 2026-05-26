@@ -148,53 +148,77 @@ After writing the complete plan, look at the spec with fresh eyes and check the 
 
 If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
 
+## Checklist
+
+You **MUST** create a `TodoWrite` task for each of these items and complete them in order. Do **NOT** skip any.
+
+Skipping skill-gap-detection and candidate-generation is the **#1 failure mode** — they are not optional shortcuts.
+
+1. **Scope check** — split into sub-plans if the spec covers multiple subsystems
+2. **Map file structure** — list every file the plan creates/modifies and its responsibility
+3. **Write the plan document** — include required headers and bite-sized tasks
+4. **Self-review** — review the plan inline for placeholders, contradictions, and type consistency
+5. **Run skill gap detection** — **REQUIRED SUB-SKILL:** `adaptive-superpowers:skill-gap-detection` (or `superpowers:skill-gap-detection`). Audit every task against the skill library; produce the task audit table and gap report. **Mandatory even when tasks look standard.**
+6. **Generate candidates for each gap** — run `python scripts/generate-candidates.py` for every gap reported. Skip only if the gap report literally says `No skill gaps detected.` after a completed audit table
+7. **Run evaluation for each generated skill** — run `python scripts/evaluate-skill.py` for each gap that has candidates
+8. **Offer execution handoff** — present the two execution choices below
+
+<HARD-GATE>
+Do **NOT** proceed to Execution Handoff (step 8) until steps 5–7 have actually run. "The tasks look standard," "no gaps obvious from inspection," and "the plan already has the code" are **NOT** valid reasons to skip — `skill-gap-detection` exists precisely to make those judgments from the skill library, not from the plan text.
+</HARD-GATE>
+
 ## Skill Gap Detection
 
-After writing and self-reviewing the plan, run an automated skill gap check **before** handing off to execution.
+After writing and self-reviewing the plan, run skill gap detection **before** execution handoff.
 
 **Announce:** "Running skill gap detection to identify missing skills for this plan."
 
+**REQUIRED SUB-SKILL:** Use `adaptive-superpowers:skill-gap-detection` (or `superpowers:skill-gap-detection`) for the full detection logic, audit table, and red flags.
+
+### What You Are Checking
+
+Ask for each task: **"Is there a SKILL.md on disk that guides this specific technique?"**
+
+- **Yes** — only if you read the skill file and its body covers the technique. Record the path in the audit table.
+- **No** — gap, even when the plan already contains complete code for that task.
+
+Plan detail does **not** count as coverage. See the sub-skill's "Covered by Plan Content" anti-pattern.
+
 ### Step 1: Enumerate Tasks
 
-List every task in the plan. For each task, note the primary action the agent must perform (e.g., "write a database migration", "configure OAuth flow", "set up CI pipeline").
+List every task in the plan. For each task, name the **specific technique** (e.g., "cache-aside with TTL", "OAuth PKCE flow", "Pointer Events + FLIP reorder") — not just "implement feature."
 
-### Step 2: Check Against Existing Skill Library
+### Step 2: Audit Against Skill Library
 
-Scan `~/.claude/skills/` (or the project-local `skills/` directory) for SKILL.md files. For each task ask:
-
-> "Is there an existing skill that guides an agent through this task?"
+Scan project `skills/` and `~/.claude/skills/` for SKILL.md files. For each candidate skill, **read the file** before marking a task covered.
 
 Judgement criteria:
-- The skill must cover the **specific technique** required — a generic "debugging" skill does not cover "tracing memory leaks in Rust".
+- The skill must cover the **specific technique** — `test-driven-development` covers the red/green process, not domain algorithms in the same task unless the skill body says so.
 - If unsure, treat it as a gap.
+- Forbidden conclusions: "covered by plan content", "default ability", "trivial".
 
-### Step 3: Output Gap List
+Output the **Task Audit Table** (required format in `skill-gap-detection`).
 
-If any gaps are found, write them to a gap report file:
+### Step 3: Output Gap Report
 
 **Save to:** `docs/superpowers/gaps/YYYY-MM-DD-<feature-name>-gaps.md`
 
-Format:
+Include the task audit table and, for each gap:
+
 ```markdown
-# Skill Gap Report — <Feature Name>
-
-Generated: <timestamp>
-
-## Gaps
-
 ### Gap 1: <short-name>
-**Context:** Which task(s) need this skill and why.
-**Expected behavior:** What an agent with this skill should do differently from an agent without it.
+**Task(s):** Task N ("…")
+**Context:** Which technique is missing from the library and why.
+**Expected behavior with skill:** What an agent with this skill should do differently.
+**Expected behavior without skill:** Likely mistakes or omissions.
 **Suggested skill name:** `<kebab-case-name>`
-
-### Gap 2: …
 ```
 
-If no gaps are found, write a one-line note: `No skill gaps detected.` and skip candidate generation.
+Write `No skill gaps detected.` **only** when the audit table has a row for every task and every row is `Covered` with a cited SKILL.md path.
 
 ### Step 4: Trigger Candidate Generation
 
-If gaps exist, invoke the candidate generation script for each gap:
+For each gap in the report:
 
 ```bash
 python scripts/generate-candidates.py \
@@ -206,15 +230,15 @@ python scripts/generate-candidates.py \
 
 Candidates are written to `candidates/<skill-name>/v1.md`, `v2.md`, `v3.md`.
 
-After all candidates are generated, invoke Group 2 evaluation:
+### Step 5: Evaluate Candidates
+
+After all candidates are generated:
 
 ```bash
 python scripts/evaluate-skill.py \
   --skill "<skill-name>" \
   --candidates "candidates/<skill-name>"
 ```
-
-**REQUIRED SUB-SKILL:** Use `adaptive-superpowers:skill-gap-detection` for the full detection logic.
 
 ---
 
