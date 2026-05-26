@@ -18,6 +18,23 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 **Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`
 - (User preferences for plan location override this default)
 
+## Checklist
+
+You MUST create a TodoWrite task for each of these items and complete them in order. Do NOT skip any. Skipping `skill-gap-detection` and `candidate-generation` is the #1 failure mode for this skill — they are NOT optional shortcuts.
+
+1. **Scope check** — split into sub-plans if the spec covers multiple subsystems
+2. **Map file structure** — list every file the plan creates/modifies and its responsibility
+3. **Write the plan document** with the required header and bite-sized tasks
+4. **Self-review** the plan inline (placeholders, contradictions, type consistency)
+5. **Run skill gap detection** — **REQUIRED SUB-SKILL:** `adaptive-superpowers:skill-gap-detection`. Audit every task against the existing skill library and produce a gap report. This is MANDATORY, not optional, even if the tasks look standard. If you find yourself thinking "the tasks look familiar, I'll skip this" — STOP. That is the rationalization the using-superpowers Red Flags table warns against. Run the skill.
+6. **Generate candidates for each gap** — run `python scripts/generate-candidates.py` for every gap the previous step reported (skip only if the report literally says `No skill gaps detected.`)
+7. **Run evaluation for each generated skill** — `python scripts/evaluate-skill.py` for each gap with candidates
+8. **Offer execution handoff** with the two execution choices
+
+<HARD-GATE>
+Do NOT proceed to the Execution Handoff (step 8) until steps 5–7 have actually run. "The tasks look standard" / "no gaps obvious from inspection" are NOT valid reasons to skip — those judgements are exactly what skill-gap-detection is for.
+</HARD-GATE>
+
 ## Scope Check
 
 If the spec covers multiple independent subsystems, it should have been broken into sub-project specs during brainstorming. If it wasn't, suggest breaking this into separate plans — one per subsystem. Each plan should produce working, testable software on its own.
@@ -197,7 +214,7 @@ python scripts/evaluate-skill.py \
   --candidates "candidates/<skill-name>"
 ```
 
-**REQUIRED SUB-SKILL:** Use `superpowers:skill-gap-detection` for the full detection logic.
+**REQUIRED SUB-SKILL:** Use `adaptive-superpowers:skill-gap-detection` for the full detection logic.
 
 ---
 
