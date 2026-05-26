@@ -47,15 +47,21 @@
 - 輸出：需要補充的 skill 清單（每個缺口寫清楚：情境描述、預期行為）
 
 **2. Multi-candidate Generation（生成候選）**
-- 對每個缺口，呼叫 LLM 生成 3–5 個不同的候選 SKILL.md
-- 每個候選要有不同的切入角度（例如：強調流程 vs 強調禁止事項 vs 強調範例）
+- 只對 gap report 的 **Primary gaps**（通常 1–3 個 niche 技巧）生成候選，不要對 audit table 每一列都跑（避免 session 爆掉）
+- 每個 primary gap 呼叫 LLM 生成 3–5 個不同的候選 SKILL.md
 - 輸出格式統一：`candidates/<skill-name>/v1.md`, `v2.md`, `v3.md`...
 
 **3. 介面定義（供 Group 2 串接）**
 ```
 Input:  candidates/<skill-name>/v*.md
-Output: 呼叫 Group 2 評估 API，傳入候選路徑清單
+Output: 呼叫 evaluate-skill.py → 評分 + deploy winner（在 execute 之前完成）
 ```
+
+**流程順序（Group 1 在 writing-plans 強制）：**
+```
+gap detection → candidates（primary only）→ evaluate + deploy（Group 2）→ execution
+```
+execution **不得**在 evaluate/deploy 之前開始。若 session 快滿，停在 deploy 之後、開新 session 再 execute。
 
 ### 驗收標準
 - [ ] 給定一份實作計畫，能自動輸出需要補充的 skill 清單

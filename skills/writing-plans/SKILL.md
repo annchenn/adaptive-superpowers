@@ -152,19 +152,46 @@ If you find issues, fix them inline. No need to re-review — just fix and move 
 
 You **MUST** create a `TodoWrite` task for each of these items and complete them in order. Do **NOT** skip any.
 
-Skipping skill-gap-detection and candidate-generation is the **#1 failure mode** — they are not optional shortcuts.
+Skipping skill-gap-detection, candidate-generation, or evaluation-before-execute is the **#1 failure mode**.
+
+### Pipeline order (non-negotiable)
+
+```
+gap detection → candidates (primary gaps only) → evaluate + deploy → execution
+```
+
+**Evaluation and deploy happen BEFORE execution — never after.** `evaluate-skill.py` scores candidates and deploys the winner to the skill library. Execution uses the deployed skills.
+
+### Session boundaries (avoid context limits)
+
+Do **not** run steps 5–8 in one marathon session if the gap report lists many gaps. Split work:
+
+| Session | Steps | Stop when |
+|---------|-------|-----------|
+| A — Planning | 1–5 | Gap report saved |
+| B — Candidates | 6 | `candidates/<primary-gap>/v*.md` exist |
+| C — Evaluate + deploy | 7 | `evaluation-log.json` / `skill-deployed` events exist |
+| D — Execution | 8 | **New session** — implement the plan only |
+
+If the human partner says "session limit reached," **stop before step 8**. Never start implementing the app mid-pipeline.
 
 1. **Scope check** — split into sub-plans if the spec covers multiple subsystems
 2. **Map file structure** — list every file the plan creates/modifies and its responsibility
 3. **Write the plan document** — include required headers and bite-sized tasks
 4. **Self-review** — review the plan inline for placeholders, contradictions, and type consistency
-5. **Run skill gap detection** — **REQUIRED SUB-SKILL:** `adaptive-superpowers:skill-gap-detection` (or `superpowers:skill-gap-detection`). Audit every task against the skill library; produce the task audit table and gap report. **Mandatory even when tasks look standard.**
-6. **Generate candidates for each gap** — run `python scripts/generate-candidates.py` for every gap reported. Skip only if the gap report literally says `No skill gaps detected.` after a completed audit table
-7. **Run evaluation for each generated skill** — run `python scripts/evaluate-skill.py` for each gap that has candidates
-8. **Offer execution handoff** — present the two execution choices below
+5. **Run skill gap detection** — **REQUIRED SUB-SKILL:** `adaptive-superpowers:skill-gap-detection` (or `superpowers:skill-gap-detection`). Audit every task; produce task audit table + gap report with **Primary gaps** section. **Mandatory even when tasks look standard.**
+6. **Generate candidates for primary gaps only** — run `python scripts/generate-candidates.py` for each skill listed under **Primary gaps** in the gap report (typically 1–3 niche techniques). Do **not** generate candidates for every audit-table row unless the human partner explicitly asks. Skip step 6–7 only if the gap report says `No skill gaps detected.` after a completed audit table.
+7. **Evaluate and deploy each generated skill** — run `python scripts/evaluate-skill.py` for each primary gap that has candidates. This step **includes deploy** (winner copied to skill library). Verify output shows `[deployed]` or a `skill-deployed` event before continuing.
+8. **Offer execution handoff** — present the two execution choices below **only after** step 7 succeeded for every primary gap you generated candidates for.
 
 <HARD-GATE>
-Do **NOT** proceed to Execution Handoff (step 8) until steps 5–7 have actually run. "The tasks look standard," "no gaps obvious from inspection," and "the plan already has the code" are **NOT** valid reasons to skip — `skill-gap-detection` exists precisely to make those judgments from the skill library, not from the plan text.
+Do **NOT** proceed to Execution Handoff (step 8) or write any implementation code until:
+
+1. Step 5 gap report exists with a completed audit table, AND
+2. Step 6 candidates exist for each **primary** gap (if any), AND
+3. Step 7 `evaluate-skill.py` has run and winners are **deployed**.
+
+"Tasks look standard," "plan already has the code," or "we can evaluate after building the app" are **invalid** reasons to skip or reorder steps.
 </HARD-GATE>
 
 ## Skill Gap Detection
@@ -216,9 +243,9 @@ Include the task audit table and, for each gap:
 
 Write `No skill gaps detected.` **only** when the audit table has a row for every task and every row is `Covered` with a cited SKILL.md path.
 
-### Step 4: Trigger Candidate Generation
+### Step 4: Trigger Candidate Generation (primary gaps only)
 
-For each gap in the report:
+Read the **Primary gaps** section of the gap report. Generate candidates **only** for those skills — not for every row in the audit table.
 
 ```bash
 python scripts/generate-candidates.py \
@@ -230,9 +257,9 @@ python scripts/generate-candidates.py \
 
 Candidates are written to `candidates/<skill-name>/v1.md`, `v2.md`, `v3.md`.
 
-### Step 5: Evaluate Candidates
+### Step 5: Evaluate and Deploy (before execution)
 
-After all candidates are generated:
+After all primary-gap candidates are generated, run evaluation **before** any implementation:
 
 ```bash
 python scripts/evaluate-skill.py \
@@ -240,11 +267,15 @@ python scripts/evaluate-skill.py \
   --candidates "candidates/<skill-name>"
 ```
 
+`evaluate-skill.py` selects the winner and **deploys** it to the skill library. Confirm deploy succeeded before step 8.
+
+**Do NOT** run subagent-driven-development or executing-plans in the same session unless steps 5–7 are complete and the human partner wants to continue.
+
 ---
 
 ## Execution Handoff
 
-After saving the plan, offer execution choice:
+**Only after** gap detection, candidate generation, evaluation, and deploy are complete:
 
 **"Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Two execution options:**
 

@@ -111,6 +111,22 @@ Plan: <path to plan file>
 - Tasks audited: N
 - Tasks covered: N
 - Gaps found: N
+- Primary gaps (for candidates + evaluate + deploy): N
+
+## Primary gaps
+
+List **only** niche/domain techniques with no SKILL.md coverage. These are the gaps that get `generate-candidates.py` and `evaluate-skill.py` — typically 1–3 per plan, not every audit row.
+
+```markdown
+1. `cjk-ime-composition` — Task 6 (CJK IME inline edit)
+2. `pointer-events-flip-drag-sort` — Task 7 (Pointer Events + FLIP)
+```
+
+Do **not** list scaffold, generic localStorage, or standard DOM tasks here unless the human partner explicitly wants skills for them.
+
+## Secondary gaps (audit only)
+
+Optional table or bullet list of other audit-table gaps that were reported for transparency but **do not** require candidate generation in the default pipeline.
 
 ## Task Audit Table
 
