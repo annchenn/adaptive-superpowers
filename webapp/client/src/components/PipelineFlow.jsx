@@ -10,7 +10,7 @@ const PIPELINE_STEPS = [
   { id: 'brainstorming',               label: 'Brainstorming',        icon: 'Lightbulb',        group: 'core' },
   { id: 'using-git-worktrees',         label: 'Git Worktree',         icon: 'GitFork',          group: 'core' },
   { id: 'writing-plans',               label: 'Writing Plans',        icon: 'FileText',         group: 'core' },
-  { id: 'gap-detection',               label: 'Gap Detection',        icon: 'Search',           group: 'g1'   },
+  { id: 'skill-gap-detection',          label: 'Gap Detection',        icon: 'Search',           group: 'g1'   },
   { id: 'candidates-generated',        label: 'Candidate Generation', icon: 'GitBranch',        group: 'g1'   },
   { id: 'evaluation-result',           label: 'Evaluation',           icon: 'BarChart2',        group: 'g2'   },
   { id: 'skill-deployed',              label: 'Skill Deployed',       icon: 'Package',          group: 'g2'   },
@@ -28,24 +28,39 @@ const GROUP_LABELS = {
 
 const ICONS = { Lightbulb, FileText, Search, GitBranch, BarChart2, Package, Zap, GitFork, FlaskConical, MessageSquareCode, GitMerge }
 
+// Step 5 (candidates-generated) is logged by generate-candidates.py with
+// e.skill = "skill-gap-detection" and e.status = "candidates-generating" / "candidates-generated"
+// Steps 6-7 are normalized by App.jsx (G2_STATUS_MAP) so they behave like normal skill events.
+function matchesStep(e, stepId) {
+  if (stepId === 'candidates-generated') {
+    return e.status === 'candidates-generated' || e.status === 'candidates-generating'
+  }
+  return e.skill === stepId
+}
+
 function getStepStatus(stepId, stepIndex, events) {
   if (!events || events.length === 0) return { status: 'waiting', event: null }
 
-  const stepEvents = events.filter(e => e.skill === stepId && e.status !== 'sub-event')
+  const stepEvents = events.filter(e => matchesStep(e, stepId) && e.status !== 'sub-event')
   if (stepEvents.length === 0) {
-    // Check if any later step has been completed/started → this one was skipped
     const laterStepIds = PIPELINE_STEPS.slice(stepIndex + 1).map(s => s.id)
-    const laterTouched = events.some(e => laterStepIds.includes(e.skill) && e.status !== 'sub-event')
+    const laterTouched = events.some(e =>
+      laterStepIds.some(id => matchesStep(e, id)) && e.status !== 'sub-event'
+    )
     return { status: laterTouched ? 'skipped' : 'waiting', event: null }
   }
 
   const latest = stepEvents[stepEvents.length - 1]
 
+  if (stepId === 'candidates-generated') {
+    if (latest.status === 'candidates-generating') return { status: 'active',    event: latest }
+    return { status: 'completed', event: latest }
+  }
+
   if (latest.status === 'started')   return { status: 'active',    event: latest }
   if (latest.status === 'error')     return { status: 'error',     event: latest }
   if (latest.status === 'completed') {
-    // Special case: gap-detection completed with gaps found → warning
-    if (stepId === 'gap-detection' && latest.data?.gaps?.length > 0) {
+    if (stepId === 'skill-gap-detection' && latest.data?.gaps?.length > 0) {
       return { status: 'warning', event: latest }
     }
     return { status: 'completed', event: latest }
